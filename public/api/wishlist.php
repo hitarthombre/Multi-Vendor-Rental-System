@@ -1,15 +1,53 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors in output
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json');
 
-require_once '../../src/Models/Wishlist.php';
-require_once '../../src/Repositories/WishlistRepository.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
+use RentalPlatform\Auth\Session;
 use RentalPlatform\Models\Wishlist;
 use RentalPlatform\Repositories\WishlistRepository;
+use RentalPlatform\Repositories\UserRepository;
 
-// For demo purposes, use a hardcoded customer ID
-// In a real application, this would come from the session
-$customerId = 'demo-customer-123';
+// Start session
+Session::start();
+
+// For demo purposes, if no user is logged in, use the first customer in the database
+$customerId = null;
+if (Session::isAuthenticated()) {
+    $customerId = Session::getUserId();
+} else {
+    // Get first customer from database for demo
+    try {
+        $userRepo = new UserRepository();
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $stmt = $db->query("SELECT id FROM users WHERE role = 'Customer' LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $customerId = $row['id'];
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Unable to determine customer ID'
+        ]);
+        exit;
+    }
+}
+
+if (!$customerId) {
+    http_response_code(401);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Authentication required'
+    ]);
+    exit;
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -17,13 +55,13 @@ $productId = $_POST['product_id'] ?? $_GET['product_id'] ?? '';
 
 if (empty($productId)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Product ID is required']);
+    echo json_encode(['success' => false, 'error' => 'Product ID is required']);
     exit;
 }
 
-$wishlistRepo = new WishlistRepository();
-
 try {
+    $wishlistRepo = new WishlistRepository();
+
     switch ($action) {
         case 'add':
             $wishlist = Wishlist::create($customerId, $productId);
@@ -74,12 +112,14 @@ try {
             
         default:
             http_response_code(400);
-            echo json_encode(['error' => 'Invalid action']);
+            echo json_encode(['success' => false, 'error' => 'Invalid action']);
             break;
     }
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Server error: ' . $e->getMessage()
+        'success' => false,
+        'error' => 'Server error: ' . $e->getMessage(),
+        'trace' => $e->getTraceAsString()
     ]);
 }

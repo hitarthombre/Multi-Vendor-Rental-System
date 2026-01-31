@@ -434,7 +434,7 @@ try {
                                 <div class="product-actions">
                                     <a href="product-details.php?id=<?= htmlspecialchars($product->getId()) ?>" 
                                        class="btn btn-primary">View Details</a>
-                                    <button class="btn btn-outline" onclick="addToWishlist('<?= htmlspecialchars($product->getId()) ?>')">
+                                    <button class="btn btn-outline" onclick="toggleWishlist('<?= htmlspecialchars($product->getId()) ?>')">
                                         ♡ Wishlist
                                     </button>
                                 </div>
@@ -472,31 +472,34 @@ try {
     </div>
 
     <script>
-        function addToWishlist(productId) {
+        function toggleWishlist(productId) {
+            const button = event.target;
+            const isInWishlist = button.innerHTML.includes('♥');
+            const action = isInWishlist ? 'remove' : 'add';
+            
             fetch('../api/wishlist.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'action=add&product_id=' + encodeURIComponent(productId)
+                body: `action=${action}&product_id=${encodeURIComponent(productId)}`
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
-                    updateWishlistButton(productId, true);
+                    updateWishlistButton(productId, !isInWishlist);
                 } else {
-                    alert(data.message || 'Failed to add to wishlist');
+                    alert(data.message || `Failed to ${action} wishlist`);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to add to wishlist');
+                alert(`Failed to ${action} wishlist`);
             });
         }
         
         function updateWishlistButton(productId, inWishlist) {
-            const buttons = document.querySelectorAll(`button[onclick="addToWishlist('${productId}')"]`);
+            const buttons = document.querySelectorAll(`button[onclick*="toggleWishlist('${productId}')"]`);
             buttons.forEach(button => {
                 if (inWishlist) {
                     button.innerHTML = '♥ In Wishlist';
@@ -516,7 +519,7 @@ try {
         document.addEventListener('DOMContentLoaded', function() {
             const productCards = document.querySelectorAll('.product-card');
             productCards.forEach(card => {
-                const button = card.querySelector('button[onclick*="addToWishlist"]');
+                const button = card.querySelector('button[onclick*="toggleWishlist"]');
                 if (button) {
                     const productId = button.getAttribute('onclick').match(/'([^']+)'/)[1];
                     

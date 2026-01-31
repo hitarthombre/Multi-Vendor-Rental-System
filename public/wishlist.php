@@ -1,25 +1,48 @@
 <?php
-require_once '../src/Repositories/WishlistRepository.php';
-require_once '../src/Services/ProductDiscoveryService.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
+use RentalPlatform\Auth\Session;
 use RentalPlatform\Repositories\WishlistRepository;
 use RentalPlatform\Services\ProductDiscoveryService;
 
-// For demo purposes, use a hardcoded customer ID
-// In a real application, this would come from the session
-$customerId = 'demo-customer-123';
+// Start session
+Session::start();
+
+// For demo purposes, if no user is logged in, use the first customer in the database
+$customerId = null;
+if (Session::isAuthenticated()) {
+    $customerId = Session::getUserId();
+} else {
+    // Get first customer from database for demo
+    try {
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $stmt = $db->query("SELECT id FROM users WHERE role = 'Customer' LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $customerId = $row['id'];
+        }
+    } catch (Exception $e) {
+        $error = "Unable to determine customer ID";
+        $customerId = null;
+    }
+}
+
+if (!$customerId) {
+    header('Location: login.php');
+    exit;
+}
 
 $wishlistRepo = new WishlistRepository();
 $discoveryService = new ProductDiscoveryService();
 
 // Handle wishlist actions
-if ($_POST['action'] ?? '' === 'remove' && !empty($_POST['product_id'])) {
+if (($_POST['action'] ?? '') === 'remove' && !empty($_POST['product_id'])) {
     $wishlistRepo->remove($customerId, $_POST['product_id']);
     header('Location: wishlist.php');
     exit;
 }
 
-if ($_POST['action'] ?? '' === 'clear') {
+if (($_POST['action'] ?? '') === 'clear') {
     $wishlistRepo->clearByCustomer($customerId);
     header('Location: wishlist.php');
     exit;
@@ -298,8 +321,8 @@ try {
             <div class="header-content">
                 <div class="logo">RentalHub</div>
                 <nav class="nav-links">
-                    <a href="products.php">Browse Products</a>
-                    <a href="search.php">Search</a>
+                    <a href="customer/products.php">Browse Products</a>
+                    <a href="index.php">Home</a>
                     <a href="wishlist.php">Wishlist (<?= $wishlistCount ?>)</a>
                 </nav>
             </div>
@@ -319,7 +342,7 @@ try {
             
             <?php if ($wishlistCount > 0): ?>
                 <div class="wishlist-actions">
-                    <a href="products.php" class="btn btn-outline">Continue Shopping</a>
+                    <a href="customer/products.php" class="btn btn-outline">Continue Shopping</a>
                     <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to clear your entire wishlist?')">
                         <input type="hidden" name="action" value="clear">
                         <button type="submit" class="btn btn-danger">Clear Wishlist</button>
@@ -358,7 +381,7 @@ try {
                             </div>
                             
                             <div class="item-actions">
-                                <a href="product-details.php?id=<?= htmlspecialchars($item['product_id']) ?>" 
+                                <a href="customer/product-details.php?id=<?= htmlspecialchars($item['product_id']) ?>" 
                                    class="btn btn-primary btn-sm">View Details</a>
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="remove">
@@ -374,7 +397,7 @@ try {
             <div class="empty-wishlist">
                 <h3>Your wishlist is empty</h3>
                 <p>Save items you're interested in to your wishlist so you can easily find them later.</p>
-                <a href="products.php" class="btn btn-primary">Start Shopping</a>
+                <a href="customer/products.php" class="btn btn-primary">Start Shopping</a>
             </div>
         <?php endif; ?>
     </div>

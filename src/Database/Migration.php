@@ -74,7 +74,9 @@ class Migration
         $migrations = [];
 
         foreach ($files as $file) {
-            if (preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_.*\.sql$/', $file)) {
+            // Support both date-time pattern and simple numeric pattern
+            if (preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_.*\.sql$/', $file) || 
+                preg_match('/^\d{3}_.*\.sql$/', $file)) {
                 $migrations[] = $file;
             }
         }

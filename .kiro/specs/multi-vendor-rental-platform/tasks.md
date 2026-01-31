@@ -197,15 +197,15 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 12: Search Result Relevance**
     - **Validates: Requirements 4.3**
   
-  - [ ] 7.4 Implement wishlist functionality (Backend + UI)
+  - [x] 7.4 Implement wishlist functionality (Backend + UI)
     - Backend: Create wishlist model
     - Backend: Ensure no inventory impact
     - UI: Add wishlist button to product cards
     - UI: Create wishlist page
     - _Requirements: 4.6_
 
-- [ ] 8. Shopping Cart Module (Backend + UI)
-  - [ ] 8.1 Implement cart operations (Backend + UI)
+- [x] 8. Shopping Cart Module (Backend + UI)
+  - [x] 8.1 Implement cart operations (Backend + UI)
     - Backend: Create Cart and CartItem models
     - Backend: Implement add/remove/update operations
     - Backend: Support multi-vendor cart
@@ -224,7 +224,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 4.5, 4.6, 5.5, 6.6**
 
 - [ ] 9. Inventory Management Module
-  - [ ] 9.1 Implement time-based availability checking
+  - [x] 9.1 Implement time-based availability checking
     - Create InventoryLock model
     - Implement time period overlap detection
     - Add availability query methods
@@ -234,7 +234,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 23: Time-Based Availability Evaluation**
     - **Validates: Requirements 9.1, 9.6**
   
-  - [ ] 9.3 Implement inventory locking mechanism
+  - [x] 9.3 Implement inventory locking mechanism
     - Create lock creation on order creation
     - Implement lock release on completion/rejection
     - Add overlap prevention
@@ -247,7 +247,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 9.2, 9.3, 9.4, 9.5**
 
 - [ ] 10. Payment Integration Module (Backend + UI)
-  - [ ] 10.1 Implement Razorpay integration (Backend + UI)
+  - [x] 10.1 Implement Razorpay integration (Backend + UI)
     - Backend: Set up Razorpay SDK with test credentials
     - Backend: Create Payment model
     - Backend: Implement payment intent creation
@@ -260,7 +260,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 16: Payment Intent Creation**
     - **Validates: Requirements 7.1**
   
-  - [ ] 10.3 Implement payment verification (Backend)
+  - [x] 10.3 Implement payment verification (Backend)
     - Backend: Create signature verification
     - Backend: Implement amount and intent matching
     - Backend: Add backend verification logic
@@ -271,7 +271,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 18: No Orders Without Verified Payment**
     - **Validates: Requirements 7.4, 7.5, 7.6, 8.1**
   
-  - [ ] 10.5 Implement refund processing (Backend)
+  - [x] 10.5 Implement refund processing (Backend)
     - Backend: Create Refund model
     - Backend: Implement Razorpay refund API integration
     - Backend: Add refund status tracking
