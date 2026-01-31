@@ -86,7 +86,6 @@ class OrderItem
             $cartItem->getTentativePrice()
         );
     }
-
     // Getters
     public function getId(): string
     {
