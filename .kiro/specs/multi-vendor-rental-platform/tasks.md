@@ -197,7 +197,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 12: Search Result Relevance**
     - **Validates: Requirements 4.3**
   
-  - [ ] 7.4 Implement wishlist functionality (Backend + UI)
+  - [x] 7.4 Implement wishlist functionality (Backend + UI)
     - Backend: Create wishlist model
     - Backend: Ensure no inventory impact
     - UI: Add wishlist button to product cards
@@ -205,7 +205,7 @@ The implementation follows a layered approach: database schema → core backend 
     - _Requirements: 4.6_
 
 - [ ] 8. Shopping Cart Module (Backend + UI)
-  - [ ] 8.1 Implement cart operations (Backend + UI)
+  - [x] 8.1 Implement cart operations (Backend + UI)
     - Backend: Create Cart and CartItem models
     - Backend: Implement add/remove/update operations
     - Backend: Support multi-vendor cart

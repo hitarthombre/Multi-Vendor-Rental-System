@@ -338,6 +338,7 @@ try {
                 </form>
                 <nav class="nav-links">
                     <a href="../wishlist.php">Wishlist</a>
+                    <a href="../cart.php">Cart</a>
                     <a href="../index.php">Home</a>
                 </nav>
             </div>

@@ -328,6 +328,7 @@ try {
                 <nav class="nav-links">
                     <a href="products.php">Browse Products</a>
                     <a href="../wishlist.php">Wishlist</a>
+                    <a href="../cart.php">Cart</a>
                 </nav>
             </div>
         </div>
@@ -380,9 +381,36 @@ try {
                             <?= nl2br(htmlspecialchars($product['description'])) ?>
                         </div>
                         
+                        <!-- Rental Period Selection -->
+                        <div class="rental-period" style="margin-bottom: 1.5rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Select Rental Period</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Start Date & Time</label>
+                                    <input type="datetime-local" id="startDateTime" 
+                                           style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">End Date & Time</label>
+                                    <input type="datetime-local" id="endDateTime" 
+                                           style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Quantity</label>
+                                    <input type="number" id="quantity" value="1" min="1" 
+                                           style="width: 80px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div id="pricePreview" style="margin-left: auto; font-size: 1.1rem; font-weight: 600; color: #007bff;">
+                                    Select dates to see price
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="product-actions">
-                            <button class="btn btn-primary" onclick="rentProduct('<?= htmlspecialchars($product['id']) ?>')">
-                                Rent This Item
+                            <button class="btn btn-primary" onclick="addToCart()" id="addToCartBtn" disabled>
+                                Add to Cart
                             </button>
                             <button class="btn btn-outline" onclick="addToWishlist('<?= htmlspecialchars($product['id']) ?>')" id="wishlistBtn">
                                 ♡ Add to Wishlist
@@ -449,8 +477,98 @@ try {
     </div>
 
     <script>
-        function rentProduct(productId) {
-            alert('Rental functionality will be implemented in later tasks. Product ID: ' + productId);
+        let currentProduct = {
+            id: '<?= htmlspecialchars($product['id'] ?? '') ?>',
+            name: '<?= htmlspecialchars($product['name'] ?? '') ?>',
+            verification_required: <?= json_encode($product['verification_required'] ?? false) ?>
+        };
+        
+        function addToCart() {
+            const startDateTime = document.getElementById('startDateTime').value;
+            const endDateTime = document.getElementById('endDateTime').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            
+            if (!startDateTime || !endDateTime) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            if (new Date(startDateTime) >= new Date(endDateTime)) {
+                alert('End date must be after start date');
+                return;
+            }
+            
+            if (quantity < 1) {
+                alert('Quantity must be at least 1');
+                return;
+            }
+            
+            // Show loading state
+            const button = document.getElementById('addToCartBtn');
+            const originalText = button.textContent;
+            button.textContent = 'Adding...';
+            button.disabled = true;
+            
+            const formData = new FormData();
+            formData.append('action', 'add');
+            formData.append('product_id', currentProduct.id);
+            formData.append('start_datetime', startDateTime);
+            formData.append('end_datetime', endDateTime);
+            formData.append('quantity', quantity);
+            
+            fetch('../api/cart.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Item added to cart successfully!');
+                    // Optionally redirect to cart or show success message
+                    if (confirm('Item added to cart! Would you like to view your cart?')) {
+                        window.location.href = '../cart.php';
+                    }
+                } else {
+                    alert('Failed to add to cart: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add to cart. Please try again.');
+            })
+            .finally(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            });
+        }
+        
+        function updatePricePreview() {
+            const startDateTime = document.getElementById('startDateTime').value;
+            const endDateTime = document.getElementById('endDateTime').value;
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const pricePreview = document.getElementById('pricePreview');
+            const addToCartBtn = document.getElementById('addToCartBtn');
+            
+            if (!startDateTime || !endDateTime) {
+                pricePreview.textContent = 'Select dates to see price';
+                addToCartBtn.disabled = true;
+                return;
+            }
+            
+            if (new Date(startDateTime) >= new Date(endDateTime)) {
+                pricePreview.textContent = 'Invalid date range';
+                addToCartBtn.disabled = true;
+                return;
+            }
+            
+            // Calculate duration for preview (simplified)
+            const start = new Date(startDateTime);
+            const end = new Date(endDateTime);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            pricePreview.textContent = `${diffDays} day${diffDays !== 1 ? 's' : ''} × ${quantity} item${quantity !== 1 ? 's' : ''}`;
+            addToCartBtn.disabled = false;
         }
         
         function addToWishlist(productId) {
@@ -491,9 +609,32 @@ try {
             }
         }
         
+        // Set minimum date to today
+        function setMinimumDates() {
+            const now = new Date();
+            const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('startDateTime').min = today;
+            document.getElementById('endDateTime').min = today;
+        }
+        
         // Check wishlist status on page load
         document.addEventListener('DOMContentLoaded', function() {
-            const productId = '<?= htmlspecialchars($product['id'] ?? '') ?>';
+            setMinimumDates();
+            
+            // Add event listeners for date changes
+            document.getElementById('startDateTime').addEventListener('change', updatePricePreview);
+            document.getElementById('endDateTime').addEventListener('change', updatePricePreview);
+            document.getElementById('quantity').addEventListener('change', updatePricePreview);
+            
+            // Update end date minimum when start date changes
+            document.getElementById('startDateTime').addEventListener('change', function() {
+                const startDate = this.value;
+                if (startDate) {
+                    document.getElementById('endDateTime').min = startDate;
+                }
+            });
+            
+            const productId = currentProduct.id;
             if (productId) {
                 fetch(`../api/wishlist.php?action=check&product_id=${encodeURIComponent(productId)}`)
                     .then(response => response.json())
