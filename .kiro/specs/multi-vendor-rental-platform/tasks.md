@@ -287,7 +287,7 @@ The implementation follows a layered approach: database schema → core backend 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Order Management Module
-  - [ ] 12.1 Implement order creation after payment verification
+  - [x] 12.1 Implement order creation after payment verification
     - Create Order and OrderItem models
     - Implement order creation triggered by verified payment
     - Add unique order identifier generation
@@ -299,7 +299,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 21: Order Identifier Uniqueness**
     - **Validates: Requirements 8.1, 8.3, 8.4**
   
-  - [ ] 12.3 Implement vendor-wise order splitting
+  - [x] 12.3 Implement vendor-wise order splitting
     - Create order splitting logic
     - Group cart items by vendor
     - Create separate orders per vendor
@@ -309,7 +309,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 19: Vendor-Wise Order Splitting**
     - **Validates: Requirements 8.2**
   
-  - [ ] 12.5 Implement initial order status assignment
+  - [x] 12.5 Implement initial order status assignment
     - Check verification requirement flag
     - Set status to Pending_Vendor_Approval or Auto_Approved
     - _Requirements: 8.5, 8.6, 8.7_
