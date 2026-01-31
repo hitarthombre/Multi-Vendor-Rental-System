@@ -512,7 +512,7 @@ The implementation follows a layered approach: database schema → core backend 
     - Retry on transient failures
     - _Requirements: 19.1-19.6_
 
-- [ ] 21. Checkpoint - Core Business Logic Complete
+- [x] 21. Checkpoint - Core Business Logic Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 22. Customer Dashboard (Backend + UI)

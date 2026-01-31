@@ -3,6 +3,7 @@
 namespace RentalPlatform\Models;
 
 use RentalPlatform\Helpers\UUID;
+use DateTime;
 
 /**
  * CartItem Model
@@ -13,34 +14,37 @@ class CartItem
 {
     private string $id;
     private string $cartId;
-    private string $productId;
     private ?string $variantId;
-    private string $rentalPeriodId;
+    private string $productId;
+    private string $vendorId;
     private int $quantity;
-    private float $tentativePrice;
+    private float $pricePerUnit;
+    private DateTime $startDate;
+    private DateTime $endDate;
     private string $createdAt;
-    private string $updatedAt;
 
     public function __construct(
         string $id,
         string $cartId,
-        string $productId,
         ?string $variantId,
-        string $rentalPeriodId,
+        string $productId,
+        string $vendorId,
         int $quantity,
-        float $tentativePrice,
-        string $createdAt,
-        string $updatedAt
+        float $pricePerUnit,
+        $startDate,
+        $endDate,
+        ?string $createdAt = null
     ) {
         $this->id = $id;
         $this->cartId = $cartId;
-        $this->productId = $productId;
         $this->variantId = $variantId;
-        $this->rentalPeriodId = $rentalPeriodId;
+        $this->productId = $productId;
+        $this->vendorId = $vendorId;
         $this->quantity = $quantity;
-        $this->tentativePrice = $tentativePrice;
-        $this->createdAt = $createdAt;
-        $this->updatedAt = $updatedAt;
+        $this->pricePerUnit = $pricePerUnit;
+        $this->startDate = $startDate instanceof DateTime ? $startDate : new DateTime($startDate);
+        $this->endDate = $endDate instanceof DateTime ? $endDate : new DateTime($endDate);
+        $this->createdAt = $createdAt ?? date('Y-m-d H:i:s');
     }
 
     /**
@@ -48,24 +52,24 @@ class CartItem
      */
     public static function create(
         string $cartId,
-        string $productId,
         ?string $variantId,
-        string $rentalPeriodId,
+        string $productId,
+        string $vendorId,
         int $quantity,
-        float $tentativePrice
+        float $pricePerUnit,
+        $startDate,
+        $endDate
     ): self {
-        $now = date('Y-m-d H:i:s');
-        
         return new self(
             UUID::generate(),
             $cartId,
-            $productId,
             $variantId,
-            $rentalPeriodId,
+            $productId,
+            $vendorId,
             $quantity,
-            $tentativePrice,
-            $now,
-            $now
+            $pricePerUnit,
+            $startDate,
+            $endDate
         );
     }
 
@@ -74,7 +78,7 @@ class CartItem
      */
     public function getSubtotal(): float
     {
-        return $this->tentativePrice * $this->quantity;
+        return $this->pricePerUnit * $this->quantity;
     }
 
     // Getters
@@ -88,19 +92,19 @@ class CartItem
         return $this->cartId;
     }
 
-    public function getProductId(): string
-    {
-        return $this->productId;
-    }
-
     public function getVariantId(): ?string
     {
         return $this->variantId;
     }
 
-    public function getRentalPeriodId(): string
+    public function getProductId(): string
     {
-        return $this->rentalPeriodId;
+        return $this->productId;
+    }
+
+    public function getVendorId(): string
+    {
+        return $this->vendorId;
     }
 
     public function getQuantity(): int
@@ -108,9 +112,19 @@ class CartItem
         return $this->quantity;
     }
 
-    public function getTentativePrice(): float
+    public function getPricePerUnit(): float
     {
-        return $this->tentativePrice;
+        return $this->pricePerUnit;
+    }
+
+    public function getStartDate(): DateTime
+    {
+        return $this->startDate;
+    }
+
+    public function getEndDate(): DateTime
+    {
+        return $this->endDate;
     }
 
     public function getCreatedAt(): string
@@ -118,28 +132,21 @@ class CartItem
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): string
-    {
-        return $this->updatedAt;
-    }
-
     // Update methods
-    public function updateQuantity(int $quantity): void
+    public function setQuantity(int $quantity): void
     {
         $this->quantity = $quantity;
-        $this->updatedAt = date('Y-m-d H:i:s');
     }
 
-    public function updatePrice(float $tentativePrice): void
+    public function updatePrice(float $pricePerUnit): void
     {
-        $this->tentativePrice = $tentativePrice;
-        $this->updatedAt = date('Y-m-d H:i:s');
+        $this->pricePerUnit = $pricePerUnit;
     }
 
-    public function updateRentalPeriod(string $rentalPeriodId): void
+    public function updateRentalPeriod(DateTime $startDate, DateTime $endDate): void
     {
-        $this->rentalPeriodId = $rentalPeriodId;
-        $this->updatedAt = date('Y-m-d H:i:s');
+        $this->startDate = $startDate;
+        $this->endDate = $endDate;
     }
 
     /**
@@ -150,13 +157,14 @@ class CartItem
         return [
             'id' => $this->id,
             'cart_id' => $this->cartId,
-            'product_id' => $this->productId,
             'variant_id' => $this->variantId,
-            'rental_period_id' => $this->rentalPeriodId,
+            'product_id' => $this->productId,
+            'vendor_id' => $this->vendorId,
             'quantity' => $this->quantity,
-            'tentative_price' => $this->tentativePrice,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt
+            'price_per_unit' => $this->pricePerUnit,
+            'start_date' => $this->startDate->format('Y-m-d H:i:s'),
+            'end_date' => $this->endDate->format('Y-m-d H:i:s'),
+            'created_at' => $this->createdAt
         ];
     }
 }

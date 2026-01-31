@@ -276,17 +276,17 @@ class ProductRepository
         
         if ($status !== null) {
             $sql = "SELECT * FROM products 
-                    WHERE (name LIKE :query OR description LIKE :query) 
+                    WHERE (name LIKE :query1 OR description LIKE :query2) 
                     AND status = :status 
                     ORDER BY created_at DESC";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':query' => $searchTerm, ':status' => $status]);
+            $stmt->execute([':query1' => $searchTerm, ':query2' => $searchTerm, ':status' => $status]);
         } else {
             $sql = "SELECT * FROM products 
-                    WHERE name LIKE :query OR description LIKE :query 
+                    WHERE name LIKE :query1 OR description LIKE :query2 
                     ORDER BY created_at DESC";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':query' => $searchTerm]);
+            $stmt->execute([':query1' => $searchTerm, ':query2' => $searchTerm]);
         }
         
         $products = [];

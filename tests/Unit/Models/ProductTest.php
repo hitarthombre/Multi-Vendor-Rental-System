@@ -19,6 +19,8 @@ class ProductTest extends TestCase
             'category-456',
             ['image1.jpg', 'image2.jpg'],
             true,
+            0.00,
+            null,
             Product::STATUS_ACTIVE
         );
 
@@ -118,6 +120,8 @@ class ProductTest extends TestCase
             'category-456',
             ['image1.jpg'],
             true,
+            0.00,
+            null,
             Product::STATUS_ACTIVE
         );
 
