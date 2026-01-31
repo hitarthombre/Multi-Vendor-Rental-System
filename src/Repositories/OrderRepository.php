@@ -388,7 +388,7 @@ class OrderRepository
             $row['updated_at']
         );
     }
-}
+
     /**
      * Get orders requiring documents (for Task 28.8)
      */
@@ -412,3 +412,4 @@ class OrderRepository
         
         return $orders;
     }
+}
