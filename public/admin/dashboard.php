@@ -101,7 +101,7 @@ ob_start();
     <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold">Total Revenue</h3>
-            <i class="fas fa-dollar-sign text-2xl opacity-80"></i>
+            <i class="fas fa-rupee-sign text-2xl opacity-80"></i>
         </div>
         <p class="text-4xl font-bold">₹<?= number_format($totalRevenue, 2) ?></p>
         <p class="text-sm opacity-80 mt-2">All-time platform revenue</p>
