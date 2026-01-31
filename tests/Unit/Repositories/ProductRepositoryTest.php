@@ -7,9 +7,11 @@ use PDO;
 use RentalPlatform\Database\Connection;
 use RentalPlatform\Models\Product;
 use RentalPlatform\Models\User;
+use RentalPlatform\Models\Vendor;
 use RentalPlatform\Models\Category;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Repositories\UserRepository;
+use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Repositories\CategoryRepository;
 
 /**
@@ -20,6 +22,7 @@ class ProductRepositoryTest extends TestCase
     private PDO $db;
     private ProductRepository $repository;
     private UserRepository $userRepository;
+    private VendorRepository $vendorRepository;
     private CategoryRepository $categoryRepository;
     private array $testVendorIds = [];
     private array $testCategoryIds = [];
@@ -29,6 +32,7 @@ class ProductRepositoryTest extends TestCase
         $this->db = Connection::getInstance();
         $this->repository = new ProductRepository();
         $this->userRepository = new UserRepository();
+        $this->vendorRepository = new VendorRepository();
         $this->categoryRepository = new CategoryRepository();
         
         $this->createTestVendors();
@@ -47,11 +51,34 @@ class ProductRepositoryTest extends TestCase
     {
         $timestamp = time();
         
-        $vendor1 = User::create("vendor1_{$timestamp}", "vendor1_{$timestamp}@example.com", 'password123', User::ROLE_VENDOR);
-        $vendor2 = User::create("vendor2_{$timestamp}", "vendor2_{$timestamp}@example.com", 'password123', User::ROLE_VENDOR);
+        // Create users
+        $user1 = User::create("vendor1_{$timestamp}", "vendor1_{$timestamp}@example.com", 'password123', User::ROLE_VENDOR);
+        $user2 = User::create("vendor2_{$timestamp}", "vendor2_{$timestamp}@example.com", 'password123', User::ROLE_VENDOR);
         
-        $this->userRepository->create($vendor1);
-        $this->userRepository->create($vendor2);
+        $this->userRepository->create($user1);
+        $this->userRepository->create($user2);
+        
+        // Create vendor profiles
+        $vendor1 = Vendor::create(
+            $user1->getId(),
+            "Test Vendor 1 Business",
+            "Test Vendor 1 Legal",
+            "TAX001",
+            "vendor1_{$timestamp}@example.com",
+            "1234567890"
+        );
+        
+        $vendor2 = Vendor::create(
+            $user2->getId(),
+            "Test Vendor 2 Business",
+            "Test Vendor 2 Legal",
+            "TAX002",
+            "vendor2_{$timestamp}@example.com",
+            "0987654321"
+        );
+        
+        $this->vendorRepository->create($vendor1);
+        $this->vendorRepository->create($vendor2);
         
         $this->testVendorIds = [
             'vendor1' => $vendor1->getId(),
@@ -63,11 +90,15 @@ class ProductRepositoryTest extends TestCase
     {
         foreach ($this->testVendorIds as $vendorId) {
             try {
-                $this->userRepository->delete($vendorId);
+                $this->vendorRepository->delete($vendorId);
             } catch (\Exception $e) {
                 // Ignore errors during cleanup
             }
         }
+        
+        // Delete users (will cascade delete vendors if still exist)
+        $stmt = $this->db->prepare("DELETE FROM users WHERE username LIKE 'vendor%'");
+        $stmt->execute();
     }
 
     private function createTestCategories(): void
@@ -111,6 +142,8 @@ class ProductRepositoryTest extends TestCase
             $this->testCategoryIds['electronics'],
             ['image1.jpg', 'image2.jpg'],
             true,
+            0.00,
+            null,
             Product::STATUS_ACTIVE
         );
 
@@ -190,6 +223,8 @@ class ProductRepositoryTest extends TestCase
                 null,
                 [],
                 false,
+                0.00,
+                null,
                 Product::STATUS_ACTIVE
             );
             $this->repository->create($product);
@@ -203,6 +238,8 @@ class ProductRepositoryTest extends TestCase
             null,
             [],
             false,
+            0.00,
+            null,
             Product::STATUS_INACTIVE
         );
         $this->repository->create($product);
@@ -371,6 +408,8 @@ class ProductRepositoryTest extends TestCase
                 null,
                 [],
                 false,
+                0.00,
+                null,
                 Product::STATUS_ACTIVE
             );
             $this->repository->create($product);
@@ -384,6 +423,8 @@ class ProductRepositoryTest extends TestCase
             null,
             [],
             false,
+            0.00,
+            null,
             Product::STATUS_INACTIVE
         );
         $this->repository->create($product);

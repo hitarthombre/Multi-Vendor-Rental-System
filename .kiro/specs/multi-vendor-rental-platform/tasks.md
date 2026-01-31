@@ -512,11 +512,11 @@ The implementation follows a layered approach: database schema → core backend 
     - Retry on transient failures
     - _Requirements: 19.1-19.6_
 
-- [ ] 21. Checkpoint - Core Business Logic Complete
+- [x] 21. Checkpoint - Core Business Logic Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 22. Customer Dashboard (Backend + UI)
-  - [ ] 22.1 Implement customer order listing (Backend + UI)
+  - [x] 22.1 Implement customer order listing (Backend + UI)
     - Backend: Create order listing API
     - Backend: Filter by customer ID
     - UI: Create customer dashboard page
@@ -528,7 +528,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 44: Customer Dashboard Order Visibility**
     - **Validates: Requirements 16.1**
   
-  - [ ] 22.3 Implement order detail view (Backend + UI)
+  - [x] 22.3 Implement order detail view (Backend + UI)
     - Backend: Create order detail API
     - UI: Create order detail page
     - UI: Show pricing breakdown
@@ -536,18 +536,18 @@ The implementation follows a layered approach: database schema → core backend 
     - UI: Show document upload status
     - _Requirements: 16.3, 16.4_
   
-  - [ ] 22.4 Implement invoice download (Backend + UI)
+  - [x] 22.4 Implement invoice download (Backend + UI)
     - Backend: Create invoice PDF generation
     - UI: Add download invoice button
     - UI: Allow download for active and completed rentals
     - _Requirements: 16.6_
   
-  - [ ] 22.5 Implement status display (UI)
+  - [x] 22.5 Implement status display (UI)
     - UI: Show human-readable status labels
     - UI: Add status-specific colors and icons
     - _Requirements: 16.5_
   
-  - [ ] 22.6 Preserve historical records (Backend)
+  - [x] 22.6 Preserve historical records (Backend)
     - Backend: Keep completed rentals accessible
     - Backend: Implement order history filtering
     - _Requirements: 16.7_

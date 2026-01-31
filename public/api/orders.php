@@ -127,6 +127,67 @@ try {
                     ]);
                     break;
                     
+                case 'download_invoice':
+                    $orderId = $_GET['order_id'] ?? '';
+                    if (empty($orderId)) {
+                        http_response_code(400);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Missing order_id parameter'
+                        ]);
+                        break;
+                    }
+                    
+                    try {
+                        // Get order details to verify customer ownership
+                        $orderDetails = $orderService->getOrderDetails($orderId);
+                        $order = $orderDetails['order'];
+                        
+                        // Verify customer ownership (in a real app, get from session)
+                        if ($order['customer_id'] !== $customerId) {
+                            http_response_code(403);
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'Unauthorized access to order'
+                            ]);
+                            break;
+                        }
+                        
+                        // Check if order status allows invoice download
+                        if (!in_array($order['status'], ['Active_Rental', 'Completed'])) {
+                            http_response_code(400);
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'Invoice not available for this order status'
+                            ]);
+                            break;
+                        }
+                        
+                        // Generate and serve PDF invoice
+                        require_once '../../src/Services/InvoiceService.php';
+                        $invoiceService = new \RentalPlatform\Services\InvoiceService();
+                        
+                        $pdfContent = $invoiceService->generateInvoicePDF($orderId);
+                        
+                        // Set headers for PDF download
+                        header('Content-Type: application/pdf');
+                        header('Content-Disposition: attachment; filename="invoice-' . $order['order_number'] . '.pdf"');
+                        header('Content-Length: ' . strlen($pdfContent));
+                        header('Cache-Control: private, max-age=0, must-revalidate');
+                        header('Pragma: public');
+                        
+                        echo $pdfContent;
+                        exit;
+                        
+                    } catch (Exception $e) {
+                        http_response_code(500);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Failed to generate invoice: ' . $e->getMessage()
+                        ]);
+                    }
+                    break;
+                    
                 default:
                     http_response_code(400);
                     echo json_encode([

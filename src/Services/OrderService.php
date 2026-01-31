@@ -443,6 +443,44 @@ class OrderService
     }
 
     /**
+     * Get customer order history with filtering (Task 22.6)
+     * 
+     * Requirements:
+     * - 16.7: Preserve completed rental records for historical reference
+     * 
+     * @param string $customerId
+     * @param array $filters Optional filters (status, date_range, etc.)
+     * @return array
+     */
+    public function getCustomerOrderHistory(string $customerId, array $filters = []): array
+    {
+        return $this->orderRepo->findByCustomerIdWithFilters($customerId, $filters);
+    }
+
+    /**
+     * Get customer orders by status
+     * 
+     * @param string $customerId
+     * @param string $status
+     * @return array
+     */
+    public function getCustomerOrdersByStatus(string $customerId, string $status): array
+    {
+        return $this->orderRepo->findByCustomerIdAndStatus($customerId, $status);
+    }
+
+    /**
+     * Get customer completed orders (historical records)
+     * 
+     * @param string $customerId
+     * @return array
+     */
+    public function getCustomerCompletedOrders(string $customerId): array
+    {
+        return $this->orderRepo->findByCustomerIdAndStatus($customerId, Order::STATUS_COMPLETED);
+    }
+
+    /**
      * Get orders for vendor
      */
     public function getVendorOrders(string $vendorId): array
