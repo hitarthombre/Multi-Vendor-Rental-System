@@ -212,12 +212,44 @@ try {
                         break;
                     }
                     
-                    $orders = $orderService->createOrdersFromCart($customerId, $paymentId);
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Orders created successfully',
-                        'data' => array_map(fn($order) => $order->toArray(), $orders)
-                    ]);
+                    try {
+                        $orders = $orderService->createOrdersFromCart($customerId, $paymentId);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Orders created successfully',
+                            'data' => array_map(fn($order) => $order->toArray(), $orders)
+                        ]);
+                    } catch (Exception $e) {
+                        // Enhanced error handling for Tasks 28.1 and 28.3
+                        $errorMessage = $e->getMessage();
+                        
+                        if (strpos($errorMessage, 'Payment verification failed') !== false) {
+                            // Task 28.1: Payment verification failure
+                            http_response_code(400);
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'Payment verification failed',
+                                'error_type' => 'payment_verification_failure',
+                                'message' => 'Your payment could not be verified. Your cart has been preserved. Please try again.'
+                            ]);
+                        } elseif (strpos($errorMessage, 'Inventory conflicts detected') !== false) {
+                            // Task 28.3: Inventory conflict
+                            http_response_code(409);
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'Inventory conflict',
+                                'error_type' => 'inventory_conflict',
+                                'message' => 'Some items in your cart are no longer available for the selected dates. Please review your cart and try again.'
+                            ]);
+                        } else {
+                            // Generic error
+                            http_response_code(500);
+                            echo json_encode([
+                                'success' => false,
+                                'error' => $errorMessage
+                            ]);
+                        }
+                    }
                     break;
                     
                 case 'approve':
@@ -339,6 +371,73 @@ try {
                         'success' => true,
                         'message' => 'Auto-approvals processed successfully'
                     ]);
+                    break;
+                    
+                case 'apply_late_fee':
+                    $orderId = $_POST['order_id'] ?? '';
+                    $lateFeeAmount = floatval($_POST['late_fee_amount'] ?? 0);
+                    $reason = $_POST['reason'] ?? '';
+                    
+                    if (empty($orderId) || $lateFeeAmount <= 0 || empty($reason)) {
+                        http_response_code(400);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Missing required parameters: order_id, late_fee_amount, reason'
+                        ]);
+                        break;
+                    }
+                    
+                    if (!$vendorId) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Vendor access required'
+                        ]);
+                        break;
+                    }
+                    
+                    try {
+                        $orderService->applyLateFee($orderId, $vendorId, $lateFeeAmount, $reason);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Late fee applied successfully'
+                        ]);
+                    } catch (Exception $e) {
+                        http_response_code(500);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                    break;
+                    
+                case 'cancel_for_document_timeout':
+                    $orderId = $_POST['order_id'] ?? '';
+                    $reason = $_POST['reason'] ?? 'Order cancelled due to document upload timeout';
+                    $processRefund = filter_var($_POST['process_refund'] ?? true, FILTER_VALIDATE_BOOLEAN);
+                    
+                    if (empty($orderId)) {
+                        http_response_code(400);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Missing order_id parameter'
+                        ]);
+                        break;
+                    }
+                    
+                    try {
+                        $orderService->cancelOrderForDocumentTimeout($orderId, $reason, $processRefund);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Order cancelled successfully'
+                        ]);
+                    } catch (Exception $e) {
+                        http_response_code(500);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                     break;
                     
                 default:

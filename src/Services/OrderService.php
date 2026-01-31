@@ -11,6 +11,8 @@ use RentalPlatform\Repositories\AuditLogRepository;
 use RentalPlatform\Repositories\CartRepository;
 use RentalPlatform\Repositories\CartItemRepository;
 use RentalPlatform\Repositories\ProductRepository;
+use RentalPlatform\Repositories\PaymentRepository;
+use RentalPlatform\Services\ErrorHandlingService;
 use Exception;
 
 /**
@@ -26,8 +28,11 @@ class OrderService
     private CartRepository $cartRepo;
     private CartItemRepository $cartItemRepo;
     private ProductRepository $productRepo;
+    private PaymentRepository $paymentRepo;
     private NotificationService $notificationService;
     private InvoiceService $invoiceService;
+    private ErrorHandlingService $errorHandlingService;
+    private \RentalPlatform\Repositories\InventoryLockRepository $inventoryLockRepo;
 
     public function __construct()
     {
@@ -37,12 +42,16 @@ class OrderService
         $this->cartRepo = new CartRepository();
         $this->cartItemRepo = new CartItemRepository();
         $this->productRepo = new ProductRepository();
+        $this->paymentRepo = new PaymentRepository();
         $this->notificationService = new NotificationService();
         $this->invoiceService = new InvoiceService();
+        $this->errorHandlingService = new ErrorHandlingService();
+        $this->inventoryLockRepo = new \RentalPlatform\Repositories\InventoryLockRepository();
     }
 
     /**
      * Create orders from cart after payment verification
+     * Enhanced with error handling for Tasks 28.1 and 28.3
      * 
      * @param string $customerId
      * @param string $paymentId
@@ -51,6 +60,26 @@ class OrderService
      */
     public function createOrdersFromCart(string $customerId, string $paymentId): array
     {
+        // Task 28.1: Verify payment before creating orders (Requirement 24.1)
+        $payment = $this->paymentRepo->findById($paymentId);
+        if (!$payment) {
+            $this->errorHandlingService->handlePaymentVerificationFailure(
+                $paymentId,
+                $customerId,
+                'Payment not found'
+            );
+            throw new Exception('Payment not found');
+        }
+
+        if (!$payment->isVerified()) {
+            $this->errorHandlingService->handlePaymentVerificationFailure(
+                $paymentId,
+                $customerId,
+                'Payment not verified'
+            );
+            throw new Exception('Payment verification failed - order creation prevented');
+        }
+
         // Get customer's cart
         $cart = $this->cartRepo->findByCustomerId($customerId);
         if (!$cart) {
@@ -62,6 +91,16 @@ class OrderService
             throw new Exception('Cart is empty');
         }
 
+        // Task 28.3: Check for inventory conflicts before creating orders (Requirement 24.2)
+        $conflictingItems = $this->checkInventoryConflicts($cartItems);
+        if (!empty($conflictingItems)) {
+            $this->errorHandlingService->handleInventoryConflict(
+                $customerId,
+                $conflictingItems
+            );
+            throw new Exception('Inventory conflicts detected - order creation rejected');
+        }
+
         // Group cart items by vendor
         $vendorGroups = $this->groupCartItemsByVendor($cartItems);
         
@@ -69,8 +108,25 @@ class OrderService
 
         // Create separate order for each vendor
         foreach ($vendorGroups as $vendorId => $items) {
-            $order = $this->createOrderForVendor($customerId, $vendorId, $paymentId, $items);
-            $createdOrders[] = $order;
+            try {
+                $order = $this->createOrderForVendor($customerId, $vendorId, $paymentId, $items);
+                $createdOrders[] = $order;
+            } catch (Exception $e) {
+                // If any order creation fails, handle the error
+                $this->errorHandlingService->logError(
+                    'order_creation_failed',
+                    'Order',
+                    'pending',
+                    'system',
+                    [
+                        'customer_id' => $customerId,
+                        'vendor_id' => $vendorId,
+                        'payment_id' => $paymentId,
+                        'error' => $e->getMessage()
+                    ]
+                );
+                throw $e;
+            }
         }
 
         // Clear the cart after successful order creation
@@ -163,27 +219,189 @@ class OrderService
     }
 
     /**
-     * Group cart items by vendor
+     * Check for inventory conflicts before order creation (Task 28.3)
+     * 
+     * @param array $cartItems
+     * @return array Array of conflicting items
      */
-    private function groupCartItemsByVendor(array $cartItems): array
+    private function checkInventoryConflicts(array $cartItems): array
     {
-        $groups = [];
-
-        foreach ($cartItems as $item) {
-            $product = $this->productRepo->findById($item->getProductId());
-            if (!$product) {
-                continue;
+        $conflictingItems = [];
+        
+        foreach ($cartItems as $cartItem) {
+            $variantId = $cartItem->getVariantId();
+            $startDate = $cartItem->getStartDate();
+            $endDate = $cartItem->getEndDate();
+            $quantity = $cartItem->getQuantity();
+            
+            // Check if inventory is available for this time period
+            if (!$this->inventoryLockRepo->isAvailable($variantId, $startDate, $endDate, $quantity)) {
+                $product = $this->productRepo->findById($cartItem->getProductId());
+                $conflictingItems[] = [
+                    'product_id' => $cartItem->getProductId(),
+                    'product_name' => $product ? $product->getName() : 'Unknown Product',
+                    'variant_id' => $variantId,
+                    'quantity' => $quantity,
+                    'start_date' => $startDate->format('Y-m-d H:i:s'),
+                    'end_date' => $endDate->format('Y-m-d H:i:s'),
+                    'conflict_reason' => 'Insufficient inventory for requested time period'
+                ];
             }
+        }
+        
+        return $conflictingItems;
+    }
 
-            $vendorId = $product->getVendorId();
-            if (!isset($groups[$vendorId])) {
-                $groups[$vendorId] = [];
-            }
-
-            $groups[$vendorId][] = $item;
+    /**
+     * Apply late fee to an order (Task 28.7)
+     * Requirement 24.5: Allow vendor to apply late fees for overdue returns
+     * 
+     * @param string $orderId
+     * @param string $vendorId
+     * @param float $lateFeeAmount
+     * @param string $reason
+     * @throws Exception
+     */
+    public function applyLateFee(string $orderId, string $vendorId, float $lateFeeAmount, string $reason): void
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
         }
 
-        return $groups;
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Verify order is completed or overdue
+        if (!in_array($order->getStatus(), [Order::STATUS_COMPLETED, Order::STATUS_OVERDUE])) {
+            throw new Exception('Late fees can only be applied to completed or overdue orders');
+        }
+
+        // Log the late fee application
+        $this->logOrderStatusChange(
+            $orderId,
+            $order->getStatus(),
+            $order->getStatus(), // Status doesn't change, but we log the fee
+            $vendorId,
+            "Late fee applied: ₹{$lateFeeAmount} - {$reason}"
+        );
+
+        // Create invoice line item for late fee
+        try {
+            $invoice = $this->invoiceService->getInvoiceByOrderId($orderId);
+            if ($invoice) {
+                $this->invoiceService->addServiceCharge(
+                    $invoice->getId(),
+                    "Late Return Fee: {$reason}",
+                    'fee',
+                    $lateFeeAmount
+                );
+            }
+        } catch (Exception $e) {
+            // Log error but don't fail the late fee application
+            $this->errorHandlingService->logError(
+                'late_fee_invoice_error',
+                'Order',
+                $orderId,
+                $vendorId,
+                [
+                    'late_fee_amount' => $lateFeeAmount,
+                    'error' => $e->getMessage()
+                ]
+            );
+        }
+
+        // Notify customer about late fee
+        $this->notificationService->sendLateFeeNotification(
+            $order->getCustomerId(),
+            $orderId,
+            $lateFeeAmount,
+            $reason
+        );
+    }
+
+    /**
+     * Cancel order due to document upload timeout (Task 28.8)
+     * Requirement 24.6: Allow order cancellation with refund for missing documents
+     * 
+     * @param string $orderId
+     * @param string $reason
+     * @param bool $processRefund
+     * @throws Exception
+     */
+    public function cancelOrderForDocumentTimeout(string $orderId, string $reason, bool $processRefund = true): void
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Transition to cancelled status
+        $this->transitionOrderStatus($orderId, Order::STATUS_CANCELLED, 'system', $reason);
+
+        // Release inventory locks
+        $this->releaseInventoryLocks($orderId);
+
+        // Process refund if requested
+        if ($processRefund) {
+            try {
+                // Initiate refund process
+                $this->initiateRefund($orderId, $order->getTotalAmount(), $reason);
+            } catch (Exception $e) {
+                // Handle refund failure (Task 28.5)
+                $this->errorHandlingService->handleRefundFailure(
+                    $orderId,
+                    $order->getPaymentId(),
+                    $order->getTotalAmount(),
+                    $e->getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * Initiate refund process
+     * 
+     * @param string $orderId
+     * @param float $refundAmount
+     * @param string $reason
+     * @throws Exception
+     */
+    private function initiateRefund(string $orderId, float $refundAmount, string $reason): void
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Create refund invoice
+        $invoice = $this->invoiceService->getInvoiceByOrderId($orderId);
+        if ($invoice) {
+            $this->invoiceService->createRefundInvoice(
+                $invoice->getId(),
+                $refundAmount,
+                $reason
+            );
+        }
+
+        // Log refund initiation
+        $this->logOrderStatusChange(
+            $orderId,
+            $order->getStatus(),
+            Order::STATUS_REFUNDED,
+            'system',
+            "Refund initiated: ₹{$refundAmount} - {$reason}"
+        );
+
+        // Notify customer about refund
+        $this->notificationService->sendRefundInitiatedNotification(
+            $order->getCustomerId(),
+            $orderId,
+            $refundAmount,
+            $reason
+        );
     }
 
     /**
@@ -759,3 +977,27 @@ class OrderService
         // TODO: Process partial refund if applicable
     }
 }
+
+    /**
+     * Group cart items by vendor
+     */
+    private function groupCartItemsByVendor(array $cartItems): array
+    {
+        $groups = [];
+
+        foreach ($cartItems as $item) {
+            $product = $this->productRepo->findById($item->getProductId());
+            if (!$product) {
+                continue;
+            }
+
+            $vendorId = $product->getVendorId();
+            if (!isset($groups[$vendorId])) {
+                $groups[$vendorId] = [];
+            }
+
+            $groups[$vendorId][] = $item;
+        }
+
+        return $groups;
+    }
