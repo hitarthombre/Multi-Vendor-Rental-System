@@ -25,13 +25,13 @@ $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
 $endDate = $_GET['end_date'] ?? date('Y-m-d');
 
 // Validate access
-if (!$reportingService->validateReportAccess($userId, 'Vendor', $vendor->id)) {
+if (!$reportingService->validateReportAccess($userId, 'Vendor', $vendor->getId())) {
     http_response_code(403);
     die('Access denied');
 }
 
 // Get vendor report
-$report = $reportingService->getVendorReport($vendor->id, [
+$report = $reportingService->getVendorReport($vendor->getId(), [
     'start_date' => $startDate,
     'end_date' => $endDate
 ]);
