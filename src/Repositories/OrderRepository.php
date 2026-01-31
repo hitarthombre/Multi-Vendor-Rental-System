@@ -18,7 +18,7 @@ class OrderRepository
 
     public function __construct()
     {
-        $this->pdo = Connection::getInstance()->getPdo();
+        $this->pdo = Connection::getInstance();
     }
 
     /**

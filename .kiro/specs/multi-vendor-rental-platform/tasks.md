@@ -223,7 +223,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 13: Browsing Inventory Non-Locking**
     - **Validates: Requirements 4.5, 4.6, 5.5, 6.6**
 
-- [ ] 9. Inventory Management Module
+- [x] 9. Inventory Management Module
   - [x] 9.1 Implement time-based availability checking
     - Create InventoryLock model
     - Implement time period overlap detection
@@ -246,7 +246,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 26: Inventory Release on Rejection or Completion**
     - **Validates: Requirements 9.2, 9.3, 9.4, 9.5**
 
-- [ ] 10. Payment Integration Module (Backend + UI)
+- [x] 10. Payment Integration Module (Backend + UI)
   - [x] 10.1 Implement Razorpay integration (Backend + UI)
     - Backend: Set up Razorpay SDK with test credentials
     - Backend: Create Payment model
@@ -319,7 +319,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 8.5, 8.6, 8.7**
 
 - [ ] 13. Order Lifecycle and Status Management
-  - [ ] 13.1 Implement order status transitions
+  - [x] 13.1 Implement order status transitions
     - Create status transition validator
     - Implement allowed transition rules
     - Add status update methods
@@ -330,12 +330,12 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 32: Valid Status Transitions**
     - **Validates: Requirements 12.1, 12.3, 12.5**
   
-  - [ ] 13.3 Integrate status transitions with audit logging
+  - [x] 13.3 Integrate status transitions with audit logging
     - Log all status changes
     - Record old/new status, timestamp, actor
     - _Requirements: 12.4_
   
-  - [ ] 13.4 Implement status change notifications
+  - [x] 13.4 Implement status change notifications
     - Trigger notifications on status changes
     - Send to appropriate parties
     - _Requirements: 12.6, 19.1-19.6_
@@ -409,7 +409,7 @@ The implementation follows a layered approach: database schema → core backend 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 17. Invoicing Module
-  - [ ] 17.1 Implement invoice generation
+  - [x] 17.1 Implement invoice generation
     - Create Invoice and InvoiceLineItem models
     - Generate invoice after payment verification
     - Include all required information
@@ -420,8 +420,8 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 37: Invoice-Order-Payment Linkage**
     - **Validates: Requirements 13.1, 13.5**
   
-  - [ ] 17.3 Implement invoice immutability
-    - Finalize invoices after confirmation
+  - [x] 17.3 Implement invoice immutability
+    - Finalize invoices after confirmation 
     - Prevent modifications to finalized invoices
     - _Requirements: 13.4_
   
@@ -429,7 +429,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 36: Invoice Immutability After Finalization**
     - **Validates: Requirements 13.4**
   
-  - [ ] 17.5 Implement invoice line items
+  - [x] 17.5 Implement invoice line items
     - Add rental charges
     - Add service charges (deposits, fees) as separate items
     - Calculate taxes
@@ -439,7 +439,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 40: Deposit Separate Recording**
     - **Validates: Requirements 13.6, 14.3**
   
-  - [ ] 17.7 Implement refund handling for invoices
+  - [x] 17.7 Implement refund handling for invoices
     - Create financial reversal records
     - Preserve original invoice
     - _Requirements: 13.7_

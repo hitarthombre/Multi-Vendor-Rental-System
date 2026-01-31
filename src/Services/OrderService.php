@@ -27,6 +27,7 @@ class OrderService
     private CartItemRepository $cartItemRepo;
     private ProductRepository $productRepo;
     private NotificationService $notificationService;
+    private InvoiceService $invoiceService;
 
     public function __construct()
     {
@@ -37,6 +38,7 @@ class OrderService
         $this->cartItemRepo = new CartItemRepository();
         $this->productRepo = new ProductRepository();
         $this->notificationService = new NotificationService();
+        $this->invoiceService = new InvoiceService();
     }
 
     /**
@@ -110,6 +112,16 @@ class OrderService
         foreach ($cartItems as $cartItem) {
             $orderItem = OrderItem::createFromCartItem($order->getId(), $cartItem);
             $this->orderItemRepo->create($orderItem);
+        }
+
+        // Generate invoice after order creation (Requirement 13.3)
+        try {
+            $invoice = $this->invoiceService->generateInvoiceForOrder($order->getId());
+            // Auto-finalize invoice for confirmed orders
+            $this->invoiceService->finalizeInvoice($invoice->getId(), $customerId);
+        } catch (\Exception $e) {
+            // Log error but don't fail order creation
+            error_log("Failed to generate invoice for order {$order->getId()}: " . $e->getMessage());
         }
 
         // Log order creation
