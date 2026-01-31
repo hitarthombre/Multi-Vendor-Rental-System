@@ -311,6 +311,100 @@ class ProductRepository
     }
 
     /**
+     * Find products with advanced filtering
+     * 
+     * @param array $filters
+     * @param int $limit
+     * @param int $offset
+     * @return array ['products' => Product[], 'total' => int]
+     */
+    public function findWithFilters(array $filters = [], int $limit = 20, int $offset = 0): array
+    {
+        $conditions = ['status = ?'];
+        $params = [Product::STATUS_ACTIVE];
+        
+        // Category filter
+        if (!empty($filters['category_id'])) {
+            $conditions[] = 'category_id = ?';
+            $params[] = $filters['category_id'];
+        }
+        
+        // Search query filter
+        if (!empty($filters['search'])) {
+            $conditions[] = '(name LIKE ? OR description LIKE ?)';
+            $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        // Verification required filter
+        if (isset($filters['verification_required'])) {
+            $conditions[] = 'verification_required = ?';
+            $params[] = $filters['verification_required'] ? 1 : 0;
+        }
+        
+        // Vendor filter
+        if (!empty($filters['vendor_id'])) {
+            $conditions[] = 'vendor_id = ?';
+            $params[] = $filters['vendor_id'];
+        }
+        
+        $whereClause = 'WHERE ' . implode(' AND ', $conditions);
+        
+        // Count total results
+        $countSql = "SELECT COUNT(*) FROM products {$whereClause}";
+        $countStmt = $this->db->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+        
+        // Get paginated results
+        $sql = "SELECT * FROM products {$whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $stmt = $this->db->prepare($sql);
+        
+        // Add limit and offset to params
+        $paginatedParams = array_merge($params, [$limit, $offset]);
+        $stmt->execute($paginatedParams);
+        
+        $products = [];
+        while ($data = $stmt->fetch()) {
+            $products[] = $this->hydrate($data);
+        }
+        
+        return [
+            'products' => $products,
+            'total' => $total
+        ];
+    }
+
+    /**
+     * Get available filter options for products
+     * 
+     * @return array
+     */
+    public function getFilterOptions(): array
+    {
+        // Get categories with product counts
+        $categorySql = "SELECT c.id, c.name, COUNT(p.id) as product_count 
+                       FROM categories c 
+                       LEFT JOIN products p ON c.id = p.category_id AND p.status = ?
+                       GROUP BY c.id, c.name 
+                       HAVING product_count > 0
+                       ORDER BY c.name ASC";
+        
+        $categoryStmt = $this->db->prepare($categorySql);
+        $categoryStmt->execute([Product::STATUS_ACTIVE]);
+        $categories = $categoryStmt->fetchAll();
+        
+        // For now, return empty attributes since we don't have variants with attributes yet
+        $attributes = [];
+        
+        return [
+            'categories' => $categories,
+            'attributes' => $attributes
+        ];
+    }
+
+    /**
      * Hydrate product from database row
      * 
      * @param array $data

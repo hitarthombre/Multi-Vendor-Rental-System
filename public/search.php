@@ -1,0 +1,571 @@
+<?php
+require_once '../src/Services/ProductDiscoveryService.php';
+
+use RentalPlatform\Services\ProductDiscoveryService;
+
+$query = $_GET['q'] ?? '';
+$filters = [];
+
+// Get additional filters
+if (!empty($_GET['category'])) {
+    $filters['category_id'] = $_GET['category'];
+}
+if (isset($_GET['verification'])) {
+    $filters['verification_required'] = $_GET['verification'] === '1';
+}
+
+$page = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 12;
+
+$discoveryService = new ProductDiscoveryService();
+
+try {
+    if (!empty($query)) {
+        $result = $discoveryService->searchProducts($query, $filters, $page, $perPage);
+    } else {
+        $result = $discoveryService->getProducts($filters, $page, $perPage);
+    }
+    
+    $products = $result['products'];
+    $pagination = $result['pagination'];
+    
+    $filterOptions = $discoveryService->getFilterOptions();
+} catch (Exception $e) {
+    $error = "Error searching products: " . $e->getMessage();
+    $products = [];
+    $pagination = [];
+    $filterOptions = ['categories' => [], 'attributes' => []];
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= !empty($query) ? 'Search: ' . htmlspecialchars($query) : 'Search Products' ?> - Multi-Vendor Rental Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .search-section {
+            flex: 1;
+            max-width: 600px;
+            margin: 0 2rem;
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .search-btn {
+            padding: 0.75rem 1.5rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .search-btn:hover {
+            background: #0056b3;
+        }
+        
+        .search-suggestions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .suggestion-tag {
+            padding: 0.25rem 0.75rem;
+            background: #e9ecef;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            text-decoration: none;
+            color: #495057;
+            transition: background-color 0.2s;
+        }
+        
+        .suggestion-tag:hover {
+            background: #dee2e6;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+        
+        .sidebar {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        
+        .filter-section {
+            margin-bottom: 2rem;
+        }
+        
+        .filter-section h3 {
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .filter-option {
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-option label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.25rem 0;
+        }
+        
+        .filter-option input {
+            margin-right: 0.5rem;
+        }
+        
+        .results-section {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+        
+        .results-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .results-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .results-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .product-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .product-info {
+            padding: 1rem;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .product-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .product-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-available {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-verification {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #007bff;
+            border: 1px solid #007bff;
+        }
+        
+        .btn-outline:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        
+        .pagination a, .pagination span {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+        }
+        
+        .pagination a:hover {
+            background: #f8f9fa;
+        }
+        
+        .pagination .current {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .no-results h3 {
+            margin-bottom: 1rem;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .search-section {
+                margin: 0;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">RentalHub</div>
+                <div class="search-section">
+                    <form class="search-form" method="GET">
+                        <input type="text" name="q" class="search-input" 
+                               placeholder="Search for products..." 
+                               value="<?= htmlspecialchars($query) ?>"
+                               autocomplete="off">
+                        <button type="submit" class="search-btn">Search</button>
+                        
+                        <!-- Preserve other filters -->
+                        <?php foreach ($_GET as $key => $value): ?>
+                            <?php if ($key !== 'q' && $key !== 'page'): ?>
+                                <input type="hidden" name="<?= htmlspecialchars($key) ?>" 
+                                       value="<?= htmlspecialchars($value) ?>">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </form>
+                    
+                    <div class="search-suggestions">
+                        <a href="search.php?q=laptop" class="suggestion-tag">Laptop</a>
+                        <a href="search.php?q=camera" class="suggestion-tag">Camera</a>
+                        <a href="search.php?q=furniture" class="suggestion-tag">Furniture</a>
+                        <a href="search.php?q=bike" class="suggestion-tag">Bike</a>
+                        <a href="search.php?q=tools" class="suggestion-tag">Tools</a>
+                    </div>
+                </div>
+                <nav>
+                    <a href="products.php" class="btn btn-outline">Browse All</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <?php if (isset($error)): ?>
+            <div class="error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <form method="GET" id="filterForm">
+                    <input type="hidden" name="q" value="<?= htmlspecialchars($query) ?>">
+                    
+                    <!-- Categories Filter -->
+                    <div class="filter-section">
+                        <h3>Categories</h3>
+                        <?php foreach ($filterOptions['categories'] as $category): ?>
+                            <div class="filter-option">
+                                <label>
+                                    <input type="radio" name="category" 
+                                           value="<?= htmlspecialchars($category['id']) ?>"
+                                           <?= ($_GET['category'] ?? '') === $category['id'] ? 'checked' : '' ?>
+                                           onchange="this.form.submit()">
+                                    <?= htmlspecialchars($category['name']) ?> 
+                                    (<?= $category['product_count'] ?>)
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (!empty($_GET['category'])): ?>
+                            <div class="filter-option">
+                                <a href="?q=<?= urlencode($query) ?>" 
+                                   style="color: #dc3545; font-size: 0.9rem;">Clear category filter</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Verification Filter -->
+                    <div class="filter-section">
+                        <h3>Verification</h3>
+                        <div class="filter-option">
+                            <label>
+                                <input type="checkbox" name="verification" value="1"
+                                       <?= ($_GET['verification'] ?? '') === '1' ? 'checked' : '' ?>
+                                       onchange="this.form.submit()">
+                                Requires verification
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </aside>
+
+            <main class="results-section">
+                <div class="results-header">
+                    <?php if (!empty($query)): ?>
+                        <h1 class="results-title">Search Results for "<?= htmlspecialchars($query) ?>"</h1>
+                    <?php else: ?>
+                        <h1 class="results-title">All Products</h1>
+                    <?php endif; ?>
+                    
+                    <div class="results-info">
+                        <?php if (!empty($products)): ?>
+                            Showing <?= count($products) ?> of <?= $pagination['total'] ?> products
+                        <?php else: ?>
+                            No products found
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php if (!empty($products)): ?>
+                    <div class="product-grid">
+                        <?php foreach ($products as $product): ?>
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <?php if (!empty($product->getImages())): ?>
+                                        <img src="<?= htmlspecialchars($product->getImages()[0]) ?>" 
+                                             alt="<?= htmlspecialchars($product->getName()) ?>"
+                                             style="width: 100%; height: 100%; object-fit: cover;">
+                                    <?php else: ?>
+                                        No image available
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="product-info">
+                                    <h3 class="product-name"><?= htmlspecialchars($product->getName()) ?></h3>
+                                    <p class="product-description"><?= htmlspecialchars($product->getDescription()) ?></p>
+                                    
+                                    <div class="product-badges">
+                                        <span class="badge badge-available">Available</span>
+                                        <?php if ($product->isVerificationRequired()): ?>
+                                            <span class="badge badge-verification">Verification Required</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <div class="product-actions">
+                                        <a href="product-details.php?id=<?= htmlspecialchars($product->getId()) ?>" 
+                                           class="btn btn-primary">View Details</a>
+                                        <button class="btn btn-outline" onclick="addToWishlist('<?= htmlspecialchars($product->getId()) ?>')">
+                                            ♡ Wishlist
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Pagination -->
+                    <?php if ($pagination['total_pages'] > 1): ?>
+                        <div class="pagination">
+                            <?php if ($pagination['has_prev']): ?>
+                                <a href="?<?= http_build_query(array_merge($_GET, ['page' => $pagination['current_page'] - 1])) ?>">
+                                    ← Previous
+                                </a>
+                            <?php endif; ?>
+
+                            <?php for ($i = max(1, $pagination['current_page'] - 2); $i <= min($pagination['total_pages'], $pagination['current_page'] + 2); $i++): ?>
+                                <?php if ($i === $pagination['current_page']): ?>
+                                    <span class="current"><?= $i ?></span>
+                                <?php else: ?>
+                                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
+                                <?php endif; ?>
+                            <?php endfor; ?>
+
+                            <?php if ($pagination['has_next']): ?>
+                                <a href="?<?= http_build_query(array_merge($_GET, ['page' => $pagination['current_page'] + 1])) ?>">
+                                    Next →
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="no-results">
+                        <h3>No products found</h3>
+                        <?php if (!empty($query)): ?>
+                            <p>Try searching with different keywords or browse our categories.</p>
+                        <?php else: ?>
+                            <p>No products are currently available.</p>
+                        <?php endif; ?>
+                        <a href="products.php" class="btn btn-primary" style="margin-top: 1rem;">Browse All Products</a>
+                    </div>
+                <?php endif; ?>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        function addToWishlist(productId) {
+            // Placeholder for wishlist functionality
+            alert('Wishlist functionality will be implemented in Task 7.4');
+        }
+        
+        // Auto-submit search form on Enter
+        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.submit();
+            }
+        });
+    </script>
+</body>
+</html>
