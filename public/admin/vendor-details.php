@@ -89,10 +89,55 @@ ob_start();
                     </div>
                 </div>
             </div>
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <i class="fas fa-store mr-2"></i>
-                Active Vendor
-            </span>
+            <div class="flex items-center gap-3">
+                <?php
+                $statusColors = [
+                    'Active' => 'bg-green-100 text-green-800',
+                    'Pending' => 'bg-yellow-100 text-yellow-800',
+                    'Suspended' => 'bg-red-100 text-red-800'
+                ];
+                $statusIcons = [
+                    'Active' => 'fa-check-circle',
+                    'Pending' => 'fa-clock',
+                    'Suspended' => 'fa-ban'
+                ];
+                ?>
+                <span id="vendor-status-badge" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <?= $statusColors[$vendor['status']] ?? 'bg-gray-100 text-gray-800' ?>">
+                    <i class="fas <?= $statusIcons[$vendor['status']] ?? 'fa-store' ?> mr-2"></i>
+                    <?= htmlspecialchars($vendor['status']) ?>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Actions -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold mb-4">Vendor Management</h3>
+        <div class="flex flex-wrap gap-3">
+            <?php if ($vendor['status'] === 'Pending'): ?>
+                <button onclick="approveVendor('<?= $vendor['id'] ?>')" 
+                        class="btn btn-primary">
+                    <i class="fas fa-check mr-2"></i>Approve Vendor
+                </button>
+                <button onclick="suspendVendor('<?= $vendor['id'] ?>')" 
+                        class="btn btn-danger">
+                    <i class="fas fa-ban mr-2"></i>Reject/Suspend
+                </button>
+            <?php elseif ($vendor['status'] === 'Active'): ?>
+                <button onclick="suspendVendor('<?= $vendor['id'] ?>')" 
+                        class="btn btn-danger">
+                    <i class="fas fa-ban mr-2"></i>Suspend Vendor
+                </button>
+            <?php elseif ($vendor['status'] === 'Suspended'): ?>
+                <button onclick="activateVendor('<?= $vendor['id'] ?>')" 
+                        class="btn btn-success">
+                    <i class="fas fa-check-circle mr-2"></i>Activate Vendor
+                </button>
+            <?php endif; ?>
+            <button onclick="editVendorProfile('<?= $vendor['id'] ?>')" 
+                    class="btn btn-secondary">
+                <i class="fas fa-edit mr-2"></i>Edit Profile
+            </button>
         </div>
     </div>
 
@@ -265,3 +310,99 @@ ob_start();
 $content = ob_get_clean();
 include __DIR__ . '/../layouts/modern-base.php';
 ?>
+
+
+<script>
+function approveVendor(vendorId) {
+    if (!confirm('Are you sure you want to approve this vendor?')) {
+        return;
+    }
+    
+    fetch('/Multi-Vendor-Rental-System/public/api/vendor-management.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'approve',
+            vendor_id: vendorId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('An error occurred: ' + error.message);
+    });
+}
+
+function suspendVendor(vendorId) {
+    const reason = prompt('Please provide a reason for suspension:');
+    if (!reason) {
+        return;
+    }
+    
+    fetch('/Multi-Vendor-Rental-System/public/api/vendor-management.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'suspend',
+            vendor_id: vendorId,
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('An error occurred: ' + error.message);
+    });
+}
+
+function activateVendor(vendorId) {
+    if (!confirm('Are you sure you want to activate this vendor?')) {
+        return;
+    }
+    
+    fetch('/Multi-Vendor-Rental-System/public/api/vendor-management.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'activate',
+            vendor_id: vendorId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('An error occurred: ' + error.message);
+    });
+}
+
+function editVendorProfile(vendorId) {
+    alert('Edit profile functionality coming soon!');
+}
+</script>

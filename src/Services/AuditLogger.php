@@ -561,4 +561,23 @@ class AuditLogger
         Session::start();
         return Session::getUserId();
     }
+
+    /**
+     * Log vendor approval
+     *
+     * @param string $vendorId
+     * @param string $adminId
+     * @return void
+     */
+    public function logVendorApproval(string $vendorId, string $adminId): void
+    {
+        $this->logAction(
+            $adminId,
+            self::ENTITY_VENDOR,
+            $vendorId,
+            self::ACTION_APPROVAL,
+            ['status' => 'Pending'],
+            ['status' => 'Active']
+        );
+    }
 }

@@ -7,6 +7,8 @@ use RentalPlatform\Database\Connection;
 use RentalPlatform\Repositories\UserRepository;
 use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Repositories\ProductRepository;
+use RentalPlatform\Repositories\OrderRepository;
+use RentalPlatform\Services\AdminAnalyticsService;
 
 Session::start();
 Middleware::requireAdministrator();
@@ -15,12 +17,18 @@ $db = Connection::getInstance();
 $userRepo = new UserRepository();
 $vendorRepo = new VendorRepository();
 $productRepo = new ProductRepository($db);
+$orderRepo = new OrderRepository($db);
+$analyticsService = new AdminAnalyticsService();
 
 // Get statistics
-$totalUsers = count($userRepo->findAll());
-$totalVendors = count($vendorRepo->findAll());
-$totalProducts = count($productRepo->findAll());
-$activeVendors = count($vendorRepo->findByStatus('Active'));
+$stats = $analyticsService->getPlatformOverview();
+$totalUsers = $stats['total_users'];
+$totalVendors = $stats['total_vendors'];
+$totalProducts = $stats['total_products'];
+$activeVendors = $stats['active_vendors'];
+$totalOrders = $stats['total_orders'];
+$pendingOrders = $stats['pending_orders'];
+$totalRevenue = $stats['total_revenue'];
 
 $pageTitle = 'Admin Dashboard';
 $showNav = true;
@@ -77,13 +85,44 @@ ob_start();
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-500">Platform Status</p>
-                <p class="text-xl font-bold text-green-600 mt-2">Operational</p>
+                <p class="text-sm text-gray-500">Total Orders</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= number_format($totalOrders) ?></p>
+                <p class="text-xs text-yellow-600 mt-1"><?= $pendingOrders ?> pending</p>
             </div>
-            <div class="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+            <div class="w-14 h-14 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-shopping-cart text-yellow-600 text-2xl"></i>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Revenue and Performance -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Total Revenue</h3>
+            <i class="fas fa-dollar-sign text-2xl opacity-80"></i>
+        </div>
+        <p class="text-4xl font-bold">₹<?= number_format($totalRevenue, 2) ?></p>
+        <p class="text-sm opacity-80 mt-2">All-time platform revenue</p>
+    </div>
+    
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Active Rentals</h3>
+            <i class="fas fa-clock text-2xl opacity-80"></i>
+        </div>
+        <p class="text-4xl font-bold"><?= number_format($stats['active_orders']) ?></p>
+        <p class="text-sm opacity-80 mt-2">Currently active rentals</p>
+    </div>
+    
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Completed</h3>
+            <i class="fas fa-check-circle text-2xl opacity-80"></i>
+        </div>
+        <p class="text-4xl font-bold"><?= number_format($stats['completed_orders']) ?></p>
+        <p class="text-sm opacity-80 mt-2">Successfully completed rentals</p>
     </div>
 </div>
 
@@ -102,13 +141,21 @@ ob_start();
                class="flex items-center justify-center px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
                 <i class="fas fa-store mr-2"></i>Manage Vendors
             </a>
+            <a href="/Multi-Vendor-Rental-System/public/admin/categories.php" 
+               class="flex items-center justify-center px-4 py-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors">
+                <i class="fas fa-tags mr-2"></i>Categories
+            </a>
+            <a href="/Multi-Vendor-Rental-System/public/admin/analytics.php" 
+               class="flex items-center justify-center px-4 py-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors">
+                <i class="fas fa-chart-bar mr-2"></i>Analytics
+            </a>
+            <a href="/Multi-Vendor-Rental-System/public/admin/orders.php" 
+               class="flex items-center justify-center px-4 py-3 bg-pink-50 text-pink-700 rounded-lg hover:bg-pink-100 transition-colors">
+                <i class="fas fa-shopping-bag mr-2"></i>Orders
+            </a>
             <a href="/Multi-Vendor-Rental-System/public/admin/audit-logs.php" 
                class="flex items-center justify-center px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
                 <i class="fas fa-clipboard-list mr-2"></i>Audit Logs
-            </a>
-            <a href="/Multi-Vendor-Rental-System/public/admin/settings.php" 
-               class="flex items-center justify-center px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fas fa-cog mr-2"></i>Settings
             </a>
         </div>
     </div>
