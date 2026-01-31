@@ -653,7 +653,7 @@ The implementation follows a layered approach: database schema → core backend 
     - _Requirements: 18.6_
 
 - [ ] 25. Reporting and Analytics Module (Backend + UI)
-  - [ ] 25.1 Implement role-based report filtering (Backend)
+  - [x] 25.1 Implement role-based report filtering (Backend)
     - Backend: Filter reports by user role
     - Backend: Ensure vendor isolation
     - _Requirements: 20.1, 20.6_
@@ -662,7 +662,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 47: Role-Based Report Filtering**
     - **Validates: Requirements 20.1, 20.6**
   
-  - [ ] 25.3 Implement vendor reports (Backend + UI)
+  - [x] 25.3 Implement vendor reports (Backend + UI)
     - Backend: Create vendor report APIs
     - UI: Create vendor reports page
     - UI: Rental volume charts
@@ -671,7 +671,7 @@ The implementation follows a layered approach: database schema → core backend 
     - UI: Approval rates metrics
     - _Requirements: 20.2_
   
-  - [ ] 25.4 Implement admin reports (Backend + UI)
+  - [x] 25.4 Implement admin reports (Backend + UI)
     - Backend: Create admin report APIs
     - UI: Create admin reports page
     - UI: Platform-wide rentals
@@ -680,13 +680,13 @@ The implementation follows a layered approach: database schema → core backend 
     - UI: Refund frequency
     - _Requirements: 20.3_
   
-  - [ ] 25.5 Implement report export (Backend + UI)
+  - [x] 25.5 Implement report export (Backend + UI)
     - Backend: Create export APIs (PDF, CSV, Excel)
     - UI: Add export buttons
     - UI: Show export progress
     - _Requirements: 20.4_
   
-  - [ ] 25.6 Ensure report data integrity (Backend)
+  - [x] 25.6 Ensure report data integrity (Backend)
     - Backend: Generate from verified records
     - Backend: Use immutable invoices
     - _Requirements: 20.5_
