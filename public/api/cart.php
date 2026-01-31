@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once '../../src/Services/CartService.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use RentalPlatform\Services\CartService;
 
