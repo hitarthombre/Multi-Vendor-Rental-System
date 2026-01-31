@@ -391,7 +391,7 @@ The implementation follows a layered approach: database schema → core backend 
     - UI: Display uploaded documents list
     - _Requirements: 11.1, 11.2, 11.3_
   
-  - [ ] 15.2 Implement document access control (Backend)
+  - [x] 15.2 Implement document access control (Backend)
     - Backend: Restrict access to customer, vendor, admin
     - Backend: Implement permission checking
     - _Requirements: 11.4, 21.5_
@@ -408,7 +408,7 @@ The implementation follows a layered approach: database schema → core backend 
 - [ ] 16. Checkpoint - Order and Approval System Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 17. Invoicing Module
+- [x] 17. Invoicing Module
   - [x] 17.1 Implement invoice generation
     - Create Invoice and InvoiceLineItem models
     - Generate invoice after payment verification
