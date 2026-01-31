@@ -345,7 +345,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 12.6, 19.1-19.6**
 
 - [ ] 14. Vendor Approval Workflow (Backend + UI)
-  - [ ] 14.1 Implement approval queue (Backend + UI)
+  - [x] 14.1 Implement approval queue (Backend + UI)
     - Backend: Create vendor approval queue view
     - Backend: Filter orders by Pending_Vendor_Approval status
     - UI: Create vendor approval queue page
@@ -356,7 +356,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 46: Approval Queue Contains Pending Orders**
     - **Validates: Requirements 17.2**
   
-  - [ ] 14.3 Implement approval and rejection actions (Backend + UI)
+  - [x] 14.3 Implement approval and rejection actions (Backend + UI)
     - Backend: Create approve order method
     - Backend: Create reject order method
     - Backend: Transition to Active_Rental or Rejected
@@ -370,7 +370,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 28: Rejection Triggers Refund and Inventory Release**
     - **Validates: Requirements 10.4, 10.5, 10.6**
   
-  - [ ] 14.5 Implement auto-approval flow (Backend)
+  - [x] 14.5 Implement auto-approval flow (Backend)
     - Backend: Automatically transition Auto_Approved to Active_Rental
     - Backend: Skip vendor intervention
     - _Requirements: 10.7_
