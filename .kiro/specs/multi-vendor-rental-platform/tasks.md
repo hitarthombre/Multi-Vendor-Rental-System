@@ -629,7 +629,7 @@ The implementation follows a layered approach: database schema → core backend 
     - UI: Manage attributes and variants
     - _Requirements: 18.3_
   
-  - [ ] 24.4 Implement platform configuration (Backend + UI)
+  - [-] 24.4 Implement platform configuration (Backend + UI)
     - Backend: Create configuration APIs
     - UI: Create settings page
     - UI: Configure verification requirements
@@ -691,36 +691,36 @@ The implementation follows a layered approach: database schema → core backend 
     - Backend: Use immutable invoices
     - _Requirements: 20.5_
 
-- [ ] 26. Vendor Branding System (Backend + UI)
-  - [ ] 26.1 Implement vendor branding configuration (Backend + UI)
+- [x] 26. Vendor Branding System (Backend + UI)
+  - [x] 26.1 Implement vendor branding configuration (Backend + UI)
     - Backend: Create branding configuration APIs
     - UI: Create vendor branding settings page
     - UI: Allow brand color setting (color picker)
     - UI: Allow logo upload
     - _Requirements: 22.1, 22.2_
   
-  - [ ] 26.2 Apply vendor branding to dashboard (UI)
+  - [x] 26.2 Apply vendor branding to dashboard (UI)
     - UI: Use vendor color in UI elements
     - UI: Display vendor logo in header
     - UI: Apply theme dynamically
     - _Requirements: 22.3_
   
-  - [ ] 26.3 Apply vendor branding to invoices (Backend)
+  - [x] 26.3 Apply vendor branding to invoices (Backend)
     - Backend: Include vendor logo in invoice PDF
     - Backend: Use vendor brand color in invoice design
     - _Requirements: 22.4_
   
-  - [ ] 26.4 Implement platform branding for customer pages (UI)
+  - [x] 26.4 Implement platform branding for customer pages (UI)
     - UI: Use platform branding on customer-facing pages
     - UI: Consistent platform theme
     - _Requirements: 22.5_
   
-  - [ ] 26.5 Implement standardized status colors (UI)
+  - [x] 26.5 Implement standardized status colors (UI)
     - UI: Use consistent colors regardless of branding
     - UI: Green for active, yellow for pending, red for rejected
     - _Requirements: 22.6_
   
-  - [ ] 26.6 Ensure branding scope isolation (Backend + UI)
+  - [x] 26.6 Ensure branding scope isolation (Backend + UI)
     - Backend: Validate branding scope
     - UI: Vendor themes only affect vendor UI
     - _Requirements: 22.7_

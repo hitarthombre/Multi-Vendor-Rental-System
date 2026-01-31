@@ -357,12 +357,31 @@ class InvoiceService
     }
 
     /**
-     * Generate HTML content for invoice
+     * Generate HTML content for invoice with vendor branding
      */
     private function generateInvoiceHTML($order, $invoice, $lineItems): string
     {
         $orderArray = $order->toArray();
         $invoiceArray = $invoice->toArray();
+        
+        // Get vendor branding information
+        $vendorRepo = new \RentalPlatform\Repositories\VendorRepository();
+        $vendor = $vendorRepo->findById($orderArray['vendor_id']);
+        
+        $vendorBrandColor = $vendor ? $vendor->getBrandColor() : '#3b82f6';
+        $vendorLogo = $vendor ? $vendor->getLogo() : null;
+        $vendorBusinessName = $vendor ? $vendor->getBusinessName() : 'Vendor';
+        $vendorLegalName = $vendor ? $vendor->getLegalName() : $vendorBusinessName;
+        $vendorContactEmail = $vendor ? $vendor->getContactEmail() : '';
+        $vendorContactPhone = $vendor ? $vendor->getContactPhone() : '';
+        
+        $logoHtml = '';
+        if ($vendorLogo) {
+            $logoPath = __DIR__ . '/../../public' . $vendorLogo;
+            if (file_exists($logoPath)) {
+                $logoHtml = "<img src='data:image/png;base64," . base64_encode(file_get_contents($logoPath)) . "' style='max-height: 80px; max-width: 200px; margin-bottom: 10px;' alt='Vendor Logo'>";
+            }
+        }
         
         return "
         <!DOCTYPE html>
@@ -371,28 +390,43 @@ class InvoiceService
             <meta charset='UTF-8'>
             <title>Invoice - {$invoiceArray['invoice_number']}</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .company-info { margin-bottom: 20px; }
+                body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid {$vendorBrandColor}; padding-bottom: 20px; }
+                .vendor-info { margin-bottom: 20px; }
+                .company-info { margin-bottom: 20px; background-color: #f8f9fa; padding: 15px; border-left: 4px solid {$vendorBrandColor}; }
                 .invoice-details { margin-bottom: 20px; }
                 .order-info { margin-bottom: 20px; }
                 table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
                 th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                .total-row { font-weight: bold; }
-                .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+                th { background-color: {$vendorBrandColor}; color: white; }
+                .total-row { font-weight: bold; background-color: #f8f9fa; }
+                .final-total { background-color: {$vendorBrandColor}; color: white; }
+                .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+                .brand-accent { color: {$vendorBrandColor}; }
+                .vendor-header { display: flex; align-items: center; justify-content: center; flex-direction: column; }
             </style>
         </head>
         <body>
             <div class='header'>
-                <h1>INVOICE</h1>
-                <h2>RentalHub Platform</h2>
+                <div class='vendor-header'>
+                    {$logoHtml}
+                    <h1 class='brand-accent'>INVOICE</h1>
+                    <h2>{$vendorBusinessName}</h2>
+                </div>
             </div>
             
             <div class='company-info'>
-                <strong>RentalHub Multi-Vendor Rental Platform</strong><br>
-                Email: support@rentalhub.com<br>
-                Phone: +91-XXXX-XXXX-XX
+                <strong>{$vendorLegalName}</strong><br>";
+        
+        if ($vendorContactEmail) {
+            $html .= "Email: {$vendorContactEmail}<br>";
+        }
+        if ($vendorContactPhone) {
+            $html .= "Phone: {$vendorContactPhone}<br>";
+        }
+        
+        $html .= "
+                <em>Powered by RentalHub Platform</em>
             </div>
             
             <div class='invoice-details'>
@@ -417,8 +451,8 @@ class InvoiceService
                     <tr>
                         <td><strong>Customer ID:</strong></td>
                         <td>{$orderArray['customer_id']}</td>
-                        <td><strong>Vendor ID:</strong></td>
-                        <td>{$orderArray['vendor_id']}</td>
+                        <td><strong>Vendor:</strong></td>
+                        <td>{$vendorBusinessName}</td>
                     </tr>
                     <tr>
                         <td><strong>Payment ID:</strong></td>
@@ -429,7 +463,7 @@ class InvoiceService
                 </table>
             </div>
             
-            <h3>Invoice Items</h3>
+            <h3 class='brand-accent'>Invoice Items</h3>
             <table>
                 <thead>
                     <tr>
@@ -461,7 +495,7 @@ class InvoiceService
                         <td>₹" . number_format($invoiceArray['tax_amount'], 2) . "</td>
                         <td>₹" . number_format($invoiceArray['subtotal'], 2) . "</td>
                     </tr>
-                    <tr class='total-row'>
+                    <tr class='final-total'>
                         <td colspan='5'><strong>TOTAL AMOUNT</strong></td>
                         <td><strong>₹" . number_format($invoiceArray['total_amount'], 2) . "</strong></td>
                     </tr>
@@ -469,12 +503,15 @@ class InvoiceService
             </table>
             
             <div class='footer'>
-                <p>Thank you for choosing RentalHub!</p>
+                <p>Thank you for choosing {$vendorBusinessName}!</p>
                 <p>This is a computer-generated invoice and does not require a signature.</p>
                 <p>Generated on: " . date('d/m/Y H:i:s') . "</p>
+                <p><em>Powered by RentalHub Multi-Vendor Platform</em></p>
             </div>
         </body>
         </html>";
+        
+        return $html;
     }
 
     /**

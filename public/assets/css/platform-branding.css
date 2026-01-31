@@ -1,0 +1,212 @@
+/* Platform Branding Styles */
+:root {
+    /* Platform Primary Colors */
+    --platform-primary: #3b82f6;
+    --platform-primary-light: #60a5fa;
+    --platform-primary-dark: #2563eb;
+    --platform-primary-50: #eff6ff;
+    --platform-primary-100: #dbeafe;
+    --platform-primary-200: #bfdbfe;
+    
+    /* Platform Secondary Colors */
+    --platform-secondary: #64748b;
+    --platform-secondary-light: #94a3b8;
+    --platform-secondary-dark: #475569;
+    
+    /* Platform Success Colors */
+    --platform-success: #10b981;
+    --platform-success-light: #34d399;
+    --platform-success-dark: #059669;
+    
+    /* Platform Warning Colors */
+    --platform-warning: #f59e0b;
+    --platform-warning-light: #fbbf24;
+    --platform-warning-dark: #d97706;
+    
+    /* Platform Error Colors */
+    --platform-error: #ef4444;
+    --platform-error-light: #f87171;
+    --platform-error-dark: #dc2626;
+}
+
+/* Platform Branding Classes */
+.platform-primary { color: var(--platform-primary) !important; }
+.platform-primary-bg { background-color: var(--platform-primary) !important; }
+.platform-primary-border { border-color: var(--platform-primary) !important; }
+.platform-primary-light-bg { background-color: var(--platform-primary-100) !important; }
+
+.platform-secondary { color: var(--platform-secondary) !important; }
+.platform-secondary-bg { background-color: var(--platform-secondary) !important; }
+.platform-secondary-border { border-color: var(--platform-secondary) !important; }
+
+/* Platform Button Styles */
+.platform-btn-primary {
+    background-color: var(--platform-primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.platform-btn-primary:hover {
+    background-color: var(--platform-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.platform-btn-secondary {
+    background-color: white;
+    color: var(--platform-primary);
+    border: 1px solid var(--platform-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.platform-btn-secondary:hover {
+    background-color: var(--platform-primary-50);
+}
+
+/* Platform Card Styles */
+.platform-card {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.platform-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Platform Status Colors (Standardized) */
+.status-active { 
+    background-color: #dcfce7; 
+    color: #166534; 
+    border-color: #16a34a;
+}
+
+.status-pending { 
+    background-color: #fef3c7; 
+    color: #92400e; 
+    border-color: #f59e0b;
+}
+
+.status-rejected { 
+    background-color: #fee2e2; 
+    color: #991b1b; 
+    border-color: #ef4444;
+}
+
+.status-completed { 
+    background-color: #f3f4f6; 
+    color: #374151; 
+    border-color: #6b7280;
+}
+
+/* Platform Header Styles */
+.platform-header {
+    background: linear-gradient(135deg, var(--platform-primary) 0%, var(--platform-primary-dark) 100%);
+    color: white;
+}
+
+/* Platform Navigation Styles */
+.platform-nav-link {
+    color: var(--platform-secondary);
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.platform-nav-link:hover {
+    color: var(--platform-primary);
+}
+
+.platform-nav-link.active {
+    color: var(--platform-primary);
+    border-bottom: 2px solid var(--platform-primary);
+}
+
+/* Platform Form Styles */
+.platform-input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.platform-input:focus {
+    outline: none;
+    border-color: var(--platform-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Platform Alert Styles */
+.platform-alert-success {
+    background-color: #dcfce7;
+    border-left: 4px solid var(--platform-success);
+    color: #166534;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.platform-alert-warning {
+    background-color: #fef3c7;
+    border-left: 4px solid var(--platform-warning);
+    color: #92400e;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.platform-alert-error {
+    background-color: #fee2e2;
+    border-left: 4px solid var(--platform-error);
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.platform-alert-info {
+    background-color: var(--platform-primary-50);
+    border-left: 4px solid var(--platform-primary);
+    color: #1e40af;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+/* Platform Logo Styles */
+.platform-logo {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: var(--platform-primary);
+}
+
+.platform-logo-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: linear-gradient(135deg, var(--platform-primary) 0%, var(--platform-primary-dark) 100%);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .platform-card {
+        margin: 0.5rem;
+    }
+    
+    .platform-btn-primary,
+    .platform-btn-secondary {
+        width: 100%;
+        text-align: center;
+    }
+}

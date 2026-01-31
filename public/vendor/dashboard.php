@@ -23,6 +23,10 @@ if (!$vendor) {
     die('Vendor profile not found. Please contact support.');
 }
 
+// Get vendor branding
+$brandColor = $vendor->getBrandColor() ?? '#3b82f6';
+$vendorLogo = $vendor->getLogo();
+
 // Get statistics
 $productRepo = new ProductRepository();
 $db = Connection::getInstance();
@@ -63,6 +67,38 @@ $showContainer = true;
 ob_start();
 ?>
 
+<!-- Dynamic Branding Styles -->
+<style>
+:root {
+    --vendor-brand-color: <?= htmlspecialchars($brandColor) ?>;
+    --vendor-brand-light: <?= htmlspecialchars($brandColor) ?>20;
+    --vendor-brand-dark: <?= htmlspecialchars($brandColor) ?>dd;
+}
+
+.brand-bg { background-color: var(--vendor-brand-color) !important; }
+.brand-text { color: var(--vendor-brand-color) !important; }
+.brand-border { border-color: var(--vendor-brand-color) !important; }
+.brand-bg-light { background-color: var(--vendor-brand-light) !important; }
+.brand-hover:hover { background-color: var(--vendor-brand-dark) !important; }
+</style>
+
+<!-- Vendor Header with Logo -->
+<?php if ($vendorLogo): ?>
+<div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="flex items-center space-x-4">
+        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/Multi-Vendor-Rental-System/public<?= htmlspecialchars($vendorLogo) ?>" 
+                 alt="<?= htmlspecialchars($vendor->getBusinessName()) ?> Logo" 
+                 class="max-w-full max-h-full object-contain">
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900"><?= htmlspecialchars($vendor->getBusinessName()) ?></h1>
+            <p class="text-gray-600">Welcome back to your dashboard</p>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Welcome Message -->
 <?php if (isset($_GET['welcome'])): ?>
     <div class="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-lg animate-slide-in">
@@ -93,8 +129,8 @@ ob_start();
                 <p class="text-sm font-medium text-gray-600">Total Products</p>
                 <p class="text-3xl font-bold text-gray-900 mt-2"><?= $totalProducts ?></p>
             </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-box text-blue-600 text-xl"></i>
+            <div class="w-12 h-12 brand-bg-light rounded-lg flex items-center justify-center">
+                <i class="fas fa-box brand-text text-xl"></i>
             </div>
         </div>
         <div class="mt-4 flex items-center text-sm">
@@ -130,7 +166,7 @@ ob_start();
             </div>
         </div>
         <div class="mt-4 flex items-center text-sm">
-            <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" class="text-purple-600 hover:text-purple-700">
+            <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" class="brand-text hover:text-gray-700">
                 View all orders <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
@@ -187,8 +223,8 @@ ob_start();
                 <p class="text-sm font-medium text-gray-600">Total Revenue</p>
                 <p class="text-3xl font-bold text-gray-900 mt-2">₹<?= number_format($totalRevenue, 2) ?></p>
             </div>
-            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-rupee-sign text-yellow-600 text-xl"></i>
+            <div class="w-12 h-12 brand-bg-light rounded-lg flex items-center justify-center">
+                <i class="fas fa-rupee-sign brand-text text-xl"></i>
             </div>
         </div>
         <div class="mt-4 flex items-center text-sm">
@@ -235,9 +271,9 @@ ob_start();
         </a>
 
         <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" 
-           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <i class="fas fa-list text-blue-600"></i>
+           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:brand-border hover:brand-bg-light transition-all group">
+            <div class="w-10 h-10 brand-bg-light rounded-lg flex items-center justify-center group-hover:brand-bg transition-colors">
+                <i class="fas fa-list brand-text"></i>
             </div>
             <div class="ml-4">
                 <p class="font-semibold text-gray-900">View All Orders</p>

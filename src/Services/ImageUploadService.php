@@ -375,4 +375,44 @@ class ImageUploadService
     {
         return '/' . $this->uploadDir . '/thumbnails/thumb_' . $filename;
     }
+
+    /**
+     * Upload vendor logo
+     * 
+     * @param array $file $_FILES array element
+     * @param string $vendorId
+     * @return string Logo path
+     * @throws \Exception
+     */
+    public function uploadVendorLogo(array $file, string $vendorId): string
+    {
+        // Set upload directory for vendor logos
+        $logoUploadDir = 'uploads/vendor-logos';
+        $fullPath = __DIR__ . '/../../public/' . $logoUploadDir;
+        
+        if (!is_dir($fullPath)) {
+            mkdir($fullPath, 0755, true);
+        }
+
+        // Validate file
+        $validation = $this->validateFile($file);
+        if (!$validation['valid']) {
+            throw new \Exception($validation['error']);
+        }
+
+        // Generate filename with vendor ID
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $filename = 'logo_' . $vendorId . '_' . time() . '.' . $extension;
+        $logoPath = $fullPath . '/' . $filename;
+
+        // Move uploaded file
+        if (!move_uploaded_file($file['tmp_name'], $logoPath)) {
+            throw new \Exception('Failed to upload logo file');
+        }
+
+        // Optimize logo (max 300x300 for logos)
+        $this->optimizeImage($logoPath, 300, 300);
+
+        return '/' . $logoUploadDir . '/' . $filename;
+    }
 }

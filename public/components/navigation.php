@@ -114,6 +114,11 @@ $userRole = $currentUser ? $currentUser['role'] : null;
                                 <a href="/Multi-Vendor-Rental-System/public/profile.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="fas fa-user mr-2 text-gray-400"></i>Your Profile
                                 </a>
+                                <?php if ($userRole === 'Vendor'): ?>
+                                <a href="/Multi-Vendor-Rental-System/public/vendor/branding-settings.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-palette mr-2 text-gray-400"></i>Branding Settings
+                                </a>
+                                <?php endif; ?>
                                 <a href="/Multi-Vendor-Rental-System/public/settings.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="fas fa-cog mr-2 text-gray-400"></i>Settings
                                 </a>

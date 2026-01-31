@@ -14,6 +14,9 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Platform Branding CSS -->
+    <link rel="stylesheet" href="/Multi-Vendor-Rental-System/public/assets/css/platform-branding.css">
+    
     <!-- Custom Tailwind Configuration -->
     <script>
         tailwind.config = {
