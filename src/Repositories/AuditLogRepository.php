@@ -340,25 +340,6 @@ class AuditLogRepository
             $row['ip_address']
         );
     }
-}
-    /**
-     * Find audit logs by action
-     */
-    public function findByAction(string $action, int $limit = 50): array
-    {
-        $sql = "SELECT * FROM audit_logs WHERE action = :action ORDER BY created_at DESC LIMIT :limit";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':action', $action, PDO::PARAM_STR);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        
-        $logs = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $logs[] = $this->hydrate($row);
-        }
-        
-        return $logs;
-    }
 
     /**
      * Get error statistics
@@ -366,13 +347,13 @@ class AuditLogRepository
     public function getErrorStatistics(): array
     {
         $sql = "SELECT 
-                    JSON_EXTRACT(new_data, '$.error_type') as error_type,
+                    JSON_EXTRACT(new_value, '$.error_type') as error_type,
                     COUNT(*) as count,
-                    MAX(created_at) as latest_occurrence
+                    MAX(timestamp) as latest_occurrence
                 FROM audit_logs 
                 WHERE action = 'error_logged' 
-                AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                GROUP BY JSON_EXTRACT(new_data, '$.error_type')
+                AND timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                GROUP BY JSON_EXTRACT(new_value, '$.error_type')
                 ORDER BY count DESC";
         
         $stmt = $this->db->prepare($sql);
@@ -389,3 +370,4 @@ class AuditLogRepository
         
         return $stats;
     }
+}
