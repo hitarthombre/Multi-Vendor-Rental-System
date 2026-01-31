@@ -20,7 +20,9 @@ $vendorRepo = new VendorRepository();
 $vendor = $vendorRepo->findByUserId($userId);
 
 if (!$vendor) {
-    die('Vendor profile not found. Please contact support.');
+    // Better error message for debugging
+    error_log("Vendor profile not found for user_id: {$userId}");
+    die('Vendor profile not found. Please <a href="/Multi-Vendor-Rental-System/public/logout.php">log out</a> and log in again. If the problem persists, contact support.');
 }
 
 // Get vendor branding
