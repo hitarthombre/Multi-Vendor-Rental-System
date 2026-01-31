@@ -86,6 +86,16 @@ class CartService
         // Calculate price
         $price = $this->calculatePrice($productId, $variantId, $rentalPeriod);
 
+        // If no variant specified, get the first available variant for the product
+        if ($variantId === null) {
+            $stmt = $this->db->prepare("SELECT id FROM variants WHERE product_id = ? LIMIT 1");
+            $stmt->execute([$productId]);
+            $variant = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($variant) {
+                $variantId = $variant['id'];
+            }
+        }
+
         // Get or create cart
         $cart = $this->getOrCreateCart($customerId);
 
