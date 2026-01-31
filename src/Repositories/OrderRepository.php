@@ -389,3 +389,26 @@ class OrderRepository
         );
     }
 }
+    /**
+     * Get orders requiring documents (for Task 28.8)
+     */
+    public function getOrdersRequiringDocuments(): array
+    {
+        $sql = "SELECT o.* FROM orders o 
+                INNER JOIN order_items oi ON o.id = oi.order_id 
+                INNER JOIN products p ON oi.product_id = p.id 
+                WHERE o.status IN ('Pending_Vendor_Approval', 'Active_Rental') 
+                AND p.verification_required = 1
+                GROUP BY o.id
+                ORDER BY o.created_at ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        
+        $orders = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->hydrate($row);
+        }
+        
+        return $orders;
+    }

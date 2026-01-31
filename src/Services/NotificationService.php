@@ -105,6 +105,209 @@ class NotificationService
     }
 
     /**
+     * Send payment failure notification (Task 28.1)
+     */
+    public function sendPaymentFailureNotification(string $customerId, string $paymentId, string $reason): void
+    {
+        $subject = 'Payment Failed - Order Not Created';
+        $message = "
+            <h2>Payment Failed</h2>
+            <p>We're sorry, but your payment could not be processed.</p>
+            <p><strong>Payment ID:</strong> {$paymentId}</p>
+            <p><strong>Reason:</strong> {$reason}</p>
+            <p>Your cart has been preserved. Please try again or contact support if the issue persists.</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'payment_failure', $subject, $message);
+    }
+
+    /**
+     * Send inventory conflict notification (Task 28.3)
+     */
+    public function sendInventoryConflictNotification(string $customerId, array $conflictingItems): void
+    {
+        $subject = 'Order Could Not Be Created - Inventory Conflict';
+        
+        $itemsList = '';
+        foreach ($conflictingItems as $item) {
+            $itemsList .= "<li>{$item['product_name']} - {$item['conflict_reason']}</li>";
+        }
+        
+        $message = "
+            <h2>Order Creation Failed</h2>
+            <p>We're sorry, but your order could not be created due to inventory conflicts:</p>
+            <ul>{$itemsList}</ul>
+            <p>These items may have been rented by another customer while you were checking out.</p>
+            <p>Please review your cart and try again with alternative dates or products.</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'inventory_conflict', $subject, $message);
+    }
+
+    /**
+     * Send refund failure notification to admin (Task 28.5)
+     */
+    public function sendRefundFailureNotification(string $orderId, string $paymentId, float $refundAmount, string $reason): void
+    {
+        $subject = 'URGENT: Refund Processing Failed - Admin Intervention Required';
+        $message = "
+            <h2>Refund Processing Failed</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Payment ID:</strong> {$paymentId}</p>
+            <p><strong>Refund Amount:</strong> ₹" . number_format($refundAmount, 2) . "</p>
+            <p><strong>Failure Reason:</strong> {$reason}</p>
+            <p>This refund requires immediate admin intervention. Please process manually.</p>
+            <p>System Administrator</p>
+        ";
+
+        // Send to admin email (in production, this would be configurable)
+        $this->emailService->sendEmail('admin@rentalhub.com', 'Admin', $subject, $message);
+    }
+
+    /**
+     * Send vendor timeout reminder (Task 28.6)
+     */
+    public function sendVendorTimeoutReminder(string $vendorId, string $orderId, int $hoursOverdue): void
+    {
+        $subject = 'REMINDER: Pending Order Approval - Action Required';
+        $message = "
+            <h2>Order Approval Overdue</h2>
+            <p>You have a pending order that requires your approval:</p>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Hours Overdue:</strong> {$hoursOverdue}</p>
+            <p>Please log in to your vendor dashboard to review and approve/reject this order.</p>
+            <p>If no action is taken within 72 hours, the order may be automatically cancelled.</p>
+            <p><a href='http://localhost:8081/vendor/dashboard.php'>Review Order</a></p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($vendorId, 'vendor_timeout_reminder', $subject, $message);
+    }
+
+    /**
+     * Send late return notification to vendor (Task 28.7)
+     */
+    public function sendLateReturnNotification(string $vendorId, string $orderId, int $daysLate, float $lateFeePerDay): void
+    {
+        $totalLateFee = $daysLate * $lateFeePerDay;
+        $subject = 'Late Return Detected - Fee Application Available';
+        $message = "
+            <h2>Late Return Detected</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Days Late:</strong> {$daysLate}</p>
+            <p><strong>Suggested Late Fee:</strong> ₹" . number_format($totalLateFee, 2) . " ({$daysLate} days × ₹" . number_format($lateFeePerDay, 2) . ")</p>
+            <p>You can apply late fees through your vendor dashboard if appropriate.</p>
+            <p><a href='http://localhost:8081/vendor/dashboard.php'>Manage Order</a></p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($vendorId, 'late_return_vendor', $subject, $message);
+    }
+
+    /**
+     * Send late return notification to customer (Task 28.7)
+     */
+    public function sendLateReturnCustomerNotification(string $customerId, string $orderId, int $daysLate, float $lateFeePerDay): void
+    {
+        $totalLateFee = $daysLate * $lateFeePerDay;
+        $subject = 'Late Return Notice - Additional Fees May Apply';
+        $message = "
+            <h2>Late Return Notice</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Days Late:</strong> {$daysLate}</p>
+            <p>Your rental period has ended but the item has not been returned. Late fees may apply:</p>
+            <p><strong>Potential Late Fee:</strong> ₹" . number_format($totalLateFee, 2) . "</p>
+            <p>Please return the item as soon as possible to minimize additional charges.</p>
+            <p>If you have already returned the item, please contact the vendor immediately.</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'late_return_customer', $subject, $message);
+    }
+
+    /**
+     * Send document upload timeout notification to customer (Task 28.8)
+     */
+    public function sendDocumentTimeoutNotification(string $customerId, string $orderId, int $hoursOverdue, array $missingDocuments): void
+    {
+        $docsList = implode(', ', $missingDocuments);
+        $subject = 'Document Upload Required - Order May Be Cancelled';
+        $message = "
+            <h2>Document Upload Overdue</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Hours Overdue:</strong> {$hoursOverdue}</p>
+            <p><strong>Missing Documents:</strong> {$docsList}</p>
+            <p>Your order requires document verification, but the required documents have not been uploaded.</p>
+            <p>Please upload the missing documents immediately to prevent order cancellation.</p>
+            <p>If documents are not uploaded soon, your order will be cancelled with a full refund.</p>
+            <p><a href='http://localhost:8081/customer/dashboard.php'>Upload Documents</a></p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'document_timeout_customer', $subject, $message);
+    }
+
+    /**
+     * Send document timeout notification to vendor (Task 28.8)
+     */
+    public function sendDocumentTimeoutVendorNotification(string $vendorId, string $orderId, int $hoursOverdue, array $missingDocuments): void
+    {
+        $docsList = implode(', ', $missingDocuments);
+        $subject = 'Customer Document Upload Overdue - Order May Be Cancelled';
+        $message = "
+            <h2>Customer Document Upload Overdue</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Hours Overdue:</strong> {$hoursOverdue}</p>
+            <p><strong>Missing Documents:</strong> {$missingDocuments}</p>
+            <p>The customer has not uploaded required verification documents for this order.</p>
+            <p>The order may be automatically cancelled with a refund if documents are not received soon.</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($vendorId, 'document_timeout_vendor', $subject, $message);
+    }
+
+    /**
+     * Send late fee notification to customer
+     */
+    public function sendLateFeeNotification(string $customerId, string $orderId, float $lateFeeAmount, string $reason): void
+    {
+        $subject = 'Late Fee Applied to Your Order';
+        $message = "
+            <h2>Late Fee Applied</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Late Fee Amount:</strong> ₹" . number_format($lateFeeAmount, 2) . "</p>
+            <p><strong>Reason:</strong> {$reason}</p>
+            <p>This fee has been added to your order due to late return or other policy violations.</p>
+            <p>If you believe this fee was applied in error, please contact customer support.</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'late_fee_applied', $subject, $message);
+    }
+
+    /**
+     * Send refund initiated notification
+     */
+    public function sendRefundInitiatedNotification(string $customerId, string $orderId, float $refundAmount, string $reason): void
+    {
+        $subject = 'Refund Initiated for Your Order';
+        $message = "
+            <h2>Refund Initiated</h2>
+            <p><strong>Order ID:</strong> {$orderId}</p>
+            <p><strong>Refund Amount:</strong> ₹" . number_format($refundAmount, 2) . "</p>
+            <p><strong>Reason:</strong> {$reason}</p>
+            <p>Your refund is being processed and should appear in your account within 5-7 business days.</p>
+            <p>You will receive a confirmation email once the refund is completed.</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'refund_initiated', $subject, $message);
+    }
+
+    /**
      * Send notification with email delivery
      * 
      * This method:
