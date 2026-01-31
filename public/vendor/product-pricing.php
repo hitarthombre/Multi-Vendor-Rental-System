@@ -506,7 +506,7 @@ $pageTitle = 'Pricing Configuration - ' . $product->getName();
                                     </div>
                                 </div>
                                 <div class="pricing-price">
-                                    $<?= number_format($pricing->getPricePerUnit(), 2) ?>
+                                    ₹<?= number_format($pricing->getPricePerUnit(), 2) ?>
                                 </div>
                                 <form method="POST" onsubmit="return confirm('Delete this pricing rule?');">
                                     <input type="hidden" name="action" value="delete_pricing">

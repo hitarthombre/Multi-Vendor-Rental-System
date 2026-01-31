@@ -74,7 +74,7 @@ try {
         echo "   - Vendor ID: " . $order->getVendorId() . "\n";
         echo "   - Payment ID: " . $order->getPaymentId() . "\n";
         echo "   - Status: " . $order->getStatus() . "\n";
-        echo "   - Total Amount: $" . number_format($order->getTotalAmount(), 2) . "\n";
+        echo "   - Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "\n";
         
         // Verify unique order number
         if (strlen($order->getOrderNumber()) > 0 && strpos($order->getOrderNumber(), 'ORD-') === 0) {

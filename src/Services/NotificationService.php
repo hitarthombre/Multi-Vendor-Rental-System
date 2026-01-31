@@ -603,7 +603,7 @@ class NotificationService
             <p><strong>Order Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Total Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Status: " . ucwords(str_replace('_', ' ', $order->getStatus())) . "</li>
             </ul>
         ";
@@ -625,7 +625,7 @@ class NotificationService
             <p><strong>Order Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Total Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Customer ID: {$order->getCustomerId()}</li>
             </ul>
             <p><strong>Action Required:</strong> Please log in to your vendor dashboard to review and approve or reject this order.</p>
@@ -640,7 +640,7 @@ class NotificationService
             <p><strong>Order Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Total Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Status: Active Rental</li>
             </ul>
             <p><strong>Next Steps:</strong> Your rental is now active. Please coordinate with the vendor for pickup/delivery arrangements.</p>
@@ -655,7 +655,7 @@ class NotificationService
             <p><strong>Order Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Total Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Status: Rejected</li>
             </ul>
             <p><strong>Refund Information:</strong> A full refund will be processed automatically. Please allow 3-5 business days for the refund to appear in your account.</p>
@@ -670,7 +670,7 @@ class NotificationService
             <p><strong>Order Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Total Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Status: Active Rental</li>
             </ul>
             <p><strong>Reminder:</strong> Please ensure proper care of the rental items and return them on time.</p>
@@ -685,7 +685,7 @@ class NotificationService
             <p><strong>Order Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Total Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Total Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Status: Completed</li>
             </ul>
             <p><strong>Thank You:</strong> Thank you for using our rental platform. We hope you had a great experience!</p>
@@ -700,7 +700,7 @@ class NotificationService
             <p><strong>Refund Details:</strong></p>
             <ul>
                 <li>Order Number: {$order->getOrderNumber()}</li>
-                <li>Refund Amount: $" . number_format($order->getTotalAmount(), 2) . "</li>
+                <li>Refund Amount: ₹" . number_format($order->getTotalAmount(), 2) . "</li>
                 <li>Status: Refunded</li>
             </ul>
             <p><strong>Processing Time:</strong> Please allow 3-5 business days for the refund to appear in your account.</p>

@@ -40,7 +40,7 @@
             <div class="border-t border-gray-200 pt-2">
                 <div class="flex justify-between font-medium">
                     <span>Total:</span>
-                    <span x-text="`$${summary.total_amount.toFixed(2)}`"></span>
+                    <span x-text="`₹${summary.total_amount.toFixed(2)}`"></span>
                 </div>
             </div>
         </div>

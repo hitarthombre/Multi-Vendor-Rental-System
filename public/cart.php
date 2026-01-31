@@ -75,7 +75,7 @@ $customerId = 'demo-customer-123';
                                 <div class="flex items-center mb-4">
                                     <div class="flex-1">
                                         <h3 class="text-md font-medium text-gray-900" x-text="vendor.vendor_name"></h3>
-                                        <p class="text-sm text-gray-500" x-text="`${vendor.items.length} items • $${vendor.total_amount.toFixed(2)}`"></p>
+                                        <p class="text-sm text-gray-500" x-text="`${vendor.items.length} items • ₹${vendor.total_amount.toFixed(2)}`"></p>
                                     </div>
                                 </div>
 
@@ -111,7 +111,7 @@ $customerId = 'demo-customer-123';
                                                 <!-- Duration and Price -->
                                                 <div class="mt-1 flex items-center justify-between">
                                                     <span class="text-sm text-gray-600" x-text="`${item.duration_value} ${item.duration_unit}`"></span>
-                                                    <span class="text-sm font-medium text-gray-900" x-text="`$${item.tentative_price.toFixed(2)} each`"></span>
+                                                    <span class="text-sm font-medium text-gray-900" x-text="`₹${item.tentative_price.toFixed(2)} each`"></span>
                                                 </div>
                                             </div>
 
@@ -138,7 +138,7 @@ $customerId = 'demo-customer-123';
 
                                                 <!-- Total Price -->
                                                 <div class="text-right">
-                                                    <div class="text-lg font-semibold text-gray-900" x-text="`$${(item.tentative_price * item.quantity).toFixed(2)}`"></div>
+                                                    <div class="text-lg font-semibold text-gray-900" x-text="`₹${(item.tentative_price * item.quantity).toFixed(2)}`"></div>
                                                 </div>
 
                                                 <!-- Remove Button -->
@@ -178,7 +178,7 @@ $customerId = 'demo-customer-123';
                             <div class="border-t border-gray-200 pt-3">
                                 <div class="flex justify-between">
                                     <span class="text-base font-medium text-gray-900">Total</span>
-                                    <span class="text-base font-medium text-gray-900" x-text="`$${cart.summary.total_amount.toFixed(2)}`"></span>
+                                    <span class="text-base font-medium text-gray-900" x-text="`₹${cart.summary.total_amount.toFixed(2)}`"></span>
                                 </div>
                             </div>
                         </div>
@@ -204,7 +204,7 @@ $customerId = 'demo-customer-123';
                                 <template x-for="(vendor, vendorId) in cart.vendors" :key="vendorId">
                                     <div class="flex justify-between text-sm">
                                         <span class="text-gray-600" x-text="vendor.vendor_name"></span>
-                                        <span x-text="`$${vendor.total_amount.toFixed(2)}`"></span>
+                                        <span x-text="`₹${vendor.total_amount.toFixed(2)}`"></span>
                                     </div>
                                 </template>
                             </div>

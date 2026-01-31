@@ -33,9 +33,9 @@ try {
         1100.00
     );
     echo "✓ Invoice created with number: {$testInvoice->getInvoiceNumber()}\n";
-    echo "✓ Subtotal: \${$testInvoice->getSubtotal()}\n";
-    echo "✓ Tax: \${$testInvoice->getTaxAmount()}\n";
-    echo "✓ Total: \${$testInvoice->getTotalAmount()}\n";
+    echo "✓ Subtotal: ₹{$testInvoice->getSubtotal()}\n";
+    echo "✓ Tax: ₹{$testInvoice->getTaxAmount()}\n";
+    echo "✓ Total: ₹{$testInvoice->getTotalAmount()}\n";
     echo "✓ Status: {$testInvoice->getStatus()}\n";
     echo "✓ Is Draft: " . ($testInvoice->isDraft() ? 'Yes' : 'No') . "\n";
     echo "✓ Is Finalized: " . ($testInvoice->isFinalized() ? 'Yes' : 'No') . "\n\n";
@@ -52,10 +52,10 @@ try {
         10.0
     );
     echo "✓ Rental item created: {$rentalItem->getDescription()}\n";
-    echo "  - Unit Price: \${$rentalItem->getUnitPrice()}\n";
-    echo "  - Total: \${$rentalItem->getTotalPrice()}\n";
-    echo "  - Tax (10%): \${$rentalItem->getTaxAmount()}\n";
-    echo "  - Total with Tax: \${$rentalItem->getTotalWithTax()}\n\n";
+    echo "  - Unit Price: ₹{$rentalItem->getUnitPrice()}\n";
+    echo "  - Total: ₹{$rentalItem->getTotalPrice()}\n";
+    echo "  - Tax (10%): ₹{$rentalItem->getTaxAmount()}\n";
+    echo "  - Total with Tax: ₹{$rentalItem->getTotalWithTax()}\n\n";
 
     // Deposit item
     $depositItem = InvoiceLineItem::createDepositItem(
@@ -64,8 +64,8 @@ try {
         200.00
     );
     echo "✓ Deposit item created: {$depositItem->getDescription()}\n";
-    echo "  - Amount: \${$depositItem->getTotalPrice()}\n";
-    echo "  - Tax: \${$depositItem->getTaxAmount()} (deposits not taxed)\n\n";
+    echo "  - Amount: ₹{$depositItem->getTotalPrice()}\n";
+    echo "  - Tax: ₹{$depositItem->getTaxAmount()} (deposits not taxed)\n\n";
 
     // Delivery fee
     $deliveryItem = InvoiceLineItem::createDeliveryItem(
@@ -74,8 +74,8 @@ try {
         5.0
     );
     echo "✓ Delivery item created: {$deliveryItem->getDescription()}\n";
-    echo "  - Amount: \${$deliveryItem->getTotalPrice()}\n";
-    echo "  - Tax (5%): \${$deliveryItem->getTaxAmount()}\n\n";
+    echo "  - Amount: ₹{$deliveryItem->getTotalPrice()}\n";
+    echo "  - Tax (5%): ₹{$deliveryItem->getTaxAmount()}\n\n";
 
     // Penalty item
     $penaltyItem = InvoiceLineItem::createPenaltyItem(
@@ -84,7 +84,7 @@ try {
         100.00
     );
     echo "✓ Penalty item created: {$penaltyItem->getDescription()}\n";
-    echo "  - Amount: \${$penaltyItem->getTotalPrice()}\n\n";
+    echo "  - Amount: ₹{$penaltyItem->getTotalPrice()}\n\n";
 
     // Test 3: Invoice Immutability
     echo "Test 3: Invoice Immutability\n";
@@ -140,7 +140,7 @@ try {
         550.00
     );
     echo "✓ Original invoice created: {$originalInvoice->getInvoiceNumber()}\n";
-    echo "  - Total: \${$originalInvoice->getTotalAmount()}\n";
+    echo "  - Total: ₹{$originalInvoice->getTotalAmount()}\n";
     
     // Simulate refund invoice (negative amounts)
     $refundInvoice = Invoice::create(
@@ -152,7 +152,7 @@ try {
         -550.00
     );
     echo "✓ Refund invoice created: {$refundInvoice->getInvoiceNumber()}\n";
-    echo "  - Total: \${$refundInvoice->getTotalAmount()} (negative)\n";
+    echo "  - Total: ₹{$refundInvoice->getTotalAmount()} (negative)\n";
     echo "✓ Original invoice preserved (not modified)\n";
     echo "✓ Original invoice number: {$originalInvoice->getInvoiceNumber()}\n";
     echo "✓ Refund invoice number: {$refundInvoice->getInvoiceNumber()}\n\n";
