@@ -558,10 +558,7 @@ class AuditLogger
      */
     private function getCurrentUserIdFromSession(): ?string
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            return null;
-        }
-
-        return $_SESSION[Session::SESSION_USER_ID] ?? null;
+        Session::start();
+        return Session::getUserId();
     }
 }

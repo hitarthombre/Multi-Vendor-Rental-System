@@ -300,4 +300,14 @@ class Session
             'is_authenticated' => self::isAuthenticated()
         ];
     }
+
+    /**
+     * Get user data (alias for toArray for backward compatibility)
+     * 
+     * @return array
+     */
+    public static function getUser(): array
+    {
+        return self::toArray();
+    }
 }

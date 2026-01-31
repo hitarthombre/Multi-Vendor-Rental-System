@@ -276,4 +276,80 @@ class UserRepository
             $data['updated_at']
         );
     }
+    
+    /**
+     * Store password reset token
+     * 
+     * @param string $userId
+     * @param string $tokenHash
+     * @param string $expiry
+     * @return bool
+     */
+    public function storePasswordResetToken(string $userId, string $tokenHash, string $expiry): bool
+    {
+        $sql = "INSERT INTO password_resets (user_id, token_hash, expiry, created_at) 
+                VALUES (:user_id, :token_hash, :expiry, :created_at)
+                ON DUPLICATE KEY UPDATE 
+                token_hash = :token_hash, 
+                expiry = :expiry, 
+                created_at = :created_at";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':user_id' => $userId,
+            ':token_hash' => $tokenHash,
+            ':expiry' => $expiry,
+            ':created_at' => date('Y-m-d H:i:s')
+        ]);
+    }
+    
+    /**
+     * Get password reset token data
+     * 
+     * @param string $userId
+     * @return array|null
+     */
+    public function getPasswordResetToken(string $userId): ?array
+    {
+        $sql = "SELECT * FROM password_resets WHERE user_id = :user_id LIMIT 1";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        
+        $data = $stmt->fetch();
+        return $data ?: null;
+    }
+    
+    /**
+     * Delete password reset token
+     * 
+     * @param string $userId
+     * @return bool
+     */
+    public function deletePasswordResetToken(string $userId): bool
+    {
+        $sql = "DELETE FROM password_resets WHERE user_id = :user_id";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':user_id' => $userId]);
+    }
+    
+    /**
+     * Update user password
+     * 
+     * @param string $userId
+     * @param string $newPasswordHash
+     * @return bool
+     */
+    public function updatePassword(string $userId, string $newPasswordHash): bool
+    {
+        $sql = "UPDATE users SET password_hash = :password_hash, updated_at = :updated_at WHERE id = :id";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':id' => $userId,
+            ':password_hash' => $newPasswordHash,
+            ':updated_at' => date('Y-m-d H:i:s')
+        ]);
+    }
 }
