@@ -8,9 +8,6 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Alpine.js for interactivity -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -96,8 +93,6 @@
     
     <!-- Additional Styles -->
     <style>
-        [x-cloak] { display: none !important; }
-        
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 10px;
@@ -158,8 +153,7 @@
     
     <!-- Toast Notifications Container -->
     <div id="toast-container" 
-         class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-full max-w-sm pointer-events-none"
-         x-data="{ toasts: [] }">
+         class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-full max-w-sm pointer-events-none">
     </div>
     
     <!-- Global Scripts -->

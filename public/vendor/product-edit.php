@@ -4,19 +4,20 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use RentalPlatform\Auth\Session;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Repositories\CategoryRepository;
+use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Database\Connection;
 
 // Start session and check authentication
 Session::start();
 if (!Session::isAuthenticated()) {
-    header('Location: /login.php');
+    header('Location: /Multi-Vendor-Rental-System/public/login.php');
     exit;
 }
 
 // Check if user is a vendor
 $user = Session::getUser();
 if ($user['role'] !== 'Vendor') {
-    header('Location: /dashboard.php');
+    header('Location: /Multi-Vendor-Rental-System/public/vendor/dashboard.php');
     exit;
 }
 
@@ -305,8 +306,8 @@ $pageTitle = 'Edit Product';
         <h1>🏪 Rental Platform - Vendor Portal</h1>
         <div class="user-info">
             <span>Welcome, <?= htmlspecialchars($user['username']) ?></span>
-            <a href="/dashboard.php" class="btn btn-secondary">Dashboard</a>
-            <a href="/logout.php" class="btn btn-secondary">Logout</a>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/dashboard.php" class="btn btn-secondary">Dashboard</a>
+            <a href="/Multi-Vendor-Rental-System/public/logout.php" class="btn btn-secondary">Logout</a>
         </div>
     </div>
     
@@ -314,7 +315,7 @@ $pageTitle = 'Edit Product';
         <div class="page-header">
             <h2>Edit Product</h2>
             <div class="breadcrumb">
-                <a href="/vendor/products.php">My Products</a> / Edit Product
+                <a href="/Multi-Vendor-Rental-System/public/vendor/products.php">My Products</a> / Edit Product
             </div>
         </div>
         
@@ -396,7 +397,7 @@ $pageTitle = 'Edit Product';
                 </div>
                 
                 <div class="form-actions">
-                    <a href="/vendor/products.php" class="btn btn-secondary">Cancel</a>
+                    <a href="/Multi-Vendor-Rental-System/public/vendor/products.php" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Update Product</button>
                 </div>
             </form>

@@ -86,17 +86,17 @@ ob_start();
 </div>
 
 <!-- Filters -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6" x-data="{ showFilters: true }">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold text-gray-900">
             <i class="fas fa-filter mr-2 text-primary-600"></i>Filters
         </h3>
-        <button @click="showFilters = !showFilters" class="text-gray-500 hover:text-gray-700">
-            <i class="fas" :class="showFilters ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        <button onclick="toggleFilters()" class="text-gray-500 hover:text-gray-700">
+            <i id="filterChevron" class="fas fa-chevron-up"></i>
         </button>
     </div>
     
-    <form method="GET" x-show="showFilters" x-transition class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <form method="GET" id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
             <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">User</label>
             <select id="user_id" name="user_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
@@ -347,6 +347,22 @@ ob_start();
 </div>
 
 <script>
+// Filter toggle
+function toggleFilters() {
+    const form = document.getElementById('filterForm');
+    const chevron = document.getElementById('filterChevron');
+    
+    if (form.style.display === 'none') {
+        form.style.display = 'grid';
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+    } else {
+        form.style.display = 'none';
+        chevron.classList.remove('fa-chevron-up');
+        chevron.classList.add('fa-chevron-down');
+    }
+}
+
 function showDetails(logId) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsContent');

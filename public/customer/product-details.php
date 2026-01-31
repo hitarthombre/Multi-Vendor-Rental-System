@@ -327,7 +327,6 @@ try {
                 <div class="logo">RentalHub</div>
                 <nav class="nav-links">
                     <a href="products.php">Browse Products</a>
-                    <a href="../search.php">Search</a>
                     <a href="../wishlist.php">Wishlist</a>
                 </nav>
             </div>

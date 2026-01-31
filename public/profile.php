@@ -273,17 +273,17 @@ ob_start();
         <!-- Change Password -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
-            <form method="POST" class="space-y-4" x-data="{ showCurrent: false, showNew: false, showConfirm: false }">
+            <form method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="change_password">
                 
                 <div>
                     <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                     <div class="relative">
-                        <input :type="showCurrent ? 'text' : 'password'" id="current_password" name="current_password" required
+                        <input type="password" id="current_password" name="current_password" required
                                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <button type="button" @click="showCurrent = !showCurrent"
+                        <button type="button" onclick="togglePasswordVisibility('current_password')"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
-                            <i class="fas" :class="showCurrent ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            <i id="current_password_icon" class="fas fa-eye"></i>
                         </button>
                     </div>
                 </div>
@@ -291,11 +291,11 @@ ob_start();
                 <div>
                     <label for="new_password" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                     <div class="relative">
-                        <input :type="showNew ? 'text' : 'password'" id="new_password" name="new_password" required
+                        <input type="password" id="new_password" name="new_password" required
                                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <button type="button" @click="showNew = !showNew"
+                        <button type="button" onclick="togglePasswordVisibility('new_password')"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
-                            <i class="fas" :class="showNew ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            <i id="new_password_icon" class="fas fa-eye"></i>
                         </button>
                     </div>
                     <p class="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
@@ -304,11 +304,11 @@ ob_start();
                 <div>
                     <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
                     <div class="relative">
-                        <input :type="showConfirm ? 'text' : 'password'" id="confirm_password" name="confirm_password" required
+                        <input type="password" id="confirm_password" name="confirm_password" required
                                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <button type="button" @click="showConfirm = !showConfirm"
+                        <button type="button" onclick="togglePasswordVisibility('confirm_password')"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
-                            <i class="fas" :class="showConfirm ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            <i id="confirm_password_icon" class="fas fa-eye"></i>
                         </button>
                     </div>
                 </div>
@@ -389,6 +389,24 @@ ob_start();
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// Password visibility toggle
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = document.getElementById(fieldId + '_icon');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+</script>
 
 <?php
 $content = ob_get_clean();

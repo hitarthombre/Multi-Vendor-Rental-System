@@ -7,7 +7,7 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 ?>
 
 <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-    <nav class="container mx-auto px-4" x-data="{ mobileMenuOpen: false, userMenuOpen: false }">
+    <nav class="container mx-auto px-4">
         <div class="flex h-16 items-center justify-between">
             <!-- Logo -->
             <div class="flex items-center gap-6">
@@ -80,28 +80,21 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
             <div class="flex items-center gap-2">
                 <?php if ($isLoggedIn): ?>
                     <!-- User Menu -->
-                    <div class="relative" x-data="{ open: false }" @click.away="open = false">
-                        <button @click="open = !open" 
+                    <div class="relative">
+                        <button onclick="toggleUserMenu()" 
                                 class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 gap-2">
                             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
                                 <?= strtoupper(substr($user['username'], 0, 2)) ?>
                             </div>
                             <span class="hidden md:inline-block"><?= htmlspecialchars($user['username']) ?></span>
-                            <svg class="h-4 w-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg id="userMenuChevron" class="h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
                         </button>
                         
                         <!-- Dropdown Menu -->
-                        <div x-show="open" 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="transform opacity-0 scale-95"
-                             x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100"
-                             x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-56 origin-top-right rounded-md border bg-popover p-1 shadow-lg"
-                             x-cloak>
+                        <div id="userMenuDropdown" style="display: none;" 
+                             class="absolute right-0 mt-2 w-56 origin-top-right rounded-md border bg-popover p-1 shadow-lg">
                             <div class="px-2 py-1.5 text-sm font-semibold">
                                 <div class="text-xs text-muted-foreground">Signed in as</div>
                                 <div class="truncate"><?= htmlspecialchars($user['email']) ?></div>
@@ -133,11 +126,11 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
                 <?php endif; ?>
                 
                 <!-- Mobile Menu Button -->
-                <button @click="mobileMenuOpen = !mobileMenuOpen" 
+                <button onclick="toggleMobileMenu()" 
                         class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-9 w-9 md:hidden">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                        <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path id="menuIconOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        <path id="menuIconClose" style="display: none;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
@@ -145,15 +138,7 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
         
         <!-- Mobile Menu -->
         <?php if ($isLoggedIn): ?>
-            <div x-show="mobileMenuOpen" 
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="opacity-0 -translate-y-1"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 x-transition:leave="transition ease-in duration-150"
-                 x-transition:leave-start="opacity-100 translate-y-0"
-                 x-transition:leave-end="opacity-0 -translate-y-1"
-                 class="md:hidden border-t py-4"
-                 x-cloak>
+            <div id="mobileMenu" style="display: none;" class="md:hidden border-t py-4">
                 <div class="space-y-1">
                     <?php if ($user['role'] === 'Vendor'): ?>
                         <a href="/Multi-Vendor-Rental-System/public/vendor/dashboard.php" 
@@ -209,3 +194,47 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
         <?php endif; ?>
     </nav>
 </header>
+
+<script>
+// User menu toggle
+function toggleUserMenu() {
+    const dropdown = document.getElementById('userMenuDropdown');
+    const chevron = document.getElementById('userMenuChevron');
+    
+    if (dropdown.style.display === 'none') {
+        dropdown.style.display = 'block';
+        chevron.classList.add('rotate-180');
+    } else {
+        dropdown.style.display = 'none';
+        chevron.classList.remove('rotate-180');
+    }
+}
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const iconOpen = document.getElementById('menuIconOpen');
+    const iconClose = document.getElementById('menuIconClose');
+    
+    if (menu.style.display === 'none') {
+        menu.style.display = 'block';
+        iconOpen.style.display = 'none';
+        iconClose.style.display = 'block';
+    } else {
+        menu.style.display = 'none';
+        iconOpen.style.display = 'block';
+        iconClose.style.display = 'none';
+    }
+}
+
+// Close user menu when clicking outside
+document.addEventListener('click', function(event) {
+    const userMenu = event.target.closest('.relative');
+    const dropdown = document.getElementById('userMenuDropdown');
+    
+    if (!userMenu && dropdown && dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        document.getElementById('userMenuChevron').classList.remove('rotate-180');
+    }
+});
+</script>

@@ -6,19 +6,20 @@ use RentalPlatform\Models\Product;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Repositories\CategoryRepository;
 use RentalPlatform\Repositories\VendorRepository;
+use RentalPlatform\Services\ImageUploadService;
 use RentalPlatform\Database\Connection;
 
 // Start session and check authentication
 Session::start();
 if (!Session::isAuthenticated()) {
-    header('Location: /login.php');
+    header('Location: /Multi-Vendor-Rental-System/public/login.php');
     exit;
 }
 
 // Check if user is a vendor
 $user = Session::getUser();
 if ($user['role'] !== 'Vendor') {
-    header('Location: /dashboard.php');
+    header('Location: /Multi-Vendor-Rental-System/public/vendor/dashboard.php');
     exit;
 }
 
@@ -65,12 +66,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // If no errors, create product
     if (empty($errors)) {
         try {
+            // Handle image uploads
+            $imageUrls = [];
+            if (isset($_FILES['product_images']) && !empty($_FILES['product_images']['name'][0])) {
+                $uploadService = new ImageUploadService();
+                $uploadDir = __DIR__ . '/../uploads/products/';
+                
+                // Create upload directory if it doesn't exist
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                
+                // Process each uploaded file
+                foreach ($_FILES['product_images']['tmp_name'] as $key => $tmpName) {
+                    if ($_FILES['product_images']['error'][$key] === UPLOAD_ERR_OK) {
+                        $fileName = $_FILES['product_images']['name'][$key];
+                        $fileSize = $_FILES['product_images']['size'][$key];
+                        
+                        try {
+                            $result = $uploadService->uploadImage($tmpName, $fileName, $fileSize);
+                            if ($result['success']) {
+                                $imageUrls[] = $result['url'];
+                            }
+                        } catch (Exception $e) {
+                            $errors[] = 'Failed to upload image: ' . $e->getMessage();
+                        }
+                    }
+                }
+            }
+            
             $product = Product::create(
                 $vendor->getId(), // vendorId from vendors table
                 $formData['name'],
                 $formData['description'],
                 $formData['category_id'],
-                [], // images - will be handled separately
+                $imageUrls, // images array
                 $formData['verification_required'],
                 $formData['status']
             );
@@ -288,8 +318,8 @@ $pageTitle = 'Add New Product';
         <h1>🏪 Rental Platform - Vendor Portal</h1>
         <div class="user-info">
             <span>Welcome, <?= htmlspecialchars($user['username']) ?></span>
-            <a href="/dashboard.php" class="btn btn-secondary">Dashboard</a>
-            <a href="/logout.php" class="btn btn-secondary">Logout</a>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/dashboard.php" class="btn btn-secondary">Dashboard</a>
+            <a href="/Multi-Vendor-Rental-System/public/logout.php" class="btn btn-secondary">Logout</a>
         </div>
     </div>
     
@@ -313,7 +343,7 @@ $pageTitle = 'Add New Product';
         <?php endif; ?>
         
         <div class="form-card">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="name">Product Name <span class="required">*</span></label>
                     <input 
@@ -361,6 +391,19 @@ $pageTitle = 'Add New Product';
                         <option value="Inactive" <?= ($formData['status'] ?? '') === 'Inactive' ? 'selected' : '' ?>>Inactive</option>
                     </select>
                     <div class="help-text">Active products are visible to customers</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product_images">Product Images</label>
+                    <input 
+                        type="file" 
+                        id="product_images" 
+                        name="product_images[]" 
+                        accept="image/*"
+                        multiple
+                        style="padding: 0.5rem;"
+                    >
+                    <div class="help-text">Upload one or more product images (JPG, PNG, GIF). You can select multiple files at once.</div>
                 </div>
                 
                 <div class="form-group">

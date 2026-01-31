@@ -337,7 +337,6 @@ try {
                     <?php endforeach; ?>
                 </form>
                 <nav class="nav-links">
-                    <a href="../search.php">Search</a>
                     <a href="../wishlist.php">Wishlist</a>
                     <a href="../index.php">Home</a>
                 </nav>

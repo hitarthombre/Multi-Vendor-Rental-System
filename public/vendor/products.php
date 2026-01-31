@@ -11,14 +11,14 @@ use RentalPlatform\Database\Connection;
 // Start session and check authentication
 Session::start();
 if (!Session::isAuthenticated()) {
-    header('Location: /login.php');
+    header('Location: /Multi-Vendor-Rental-System/public/login.php');
     exit;
 }
 
 // Check if user is a vendor
 $user = Session::getUser();
 if ($user['role'] !== 'Vendor') {
-    header('Location: /dashboard.php');
+    header('Location: /Multi-Vendor-Rental-System/public/vendor/dashboard.php');
     exit;
 }
 
@@ -37,7 +37,13 @@ if (!$vendor) {
 
 // Get vendor's products
 $vendorId = $vendor->getId();
-$products = $productRepo->findByVendorId($vendorId);
+$allProducts = $productRepo->findByVendorId($vendorId);
+
+// Filter out deleted products
+$products = array_filter($allProducts, function($product) {
+    return $product->getStatus() !== 'Deleted';
+});
+
 $categories = $categoryRepo->findAll();
 
 // Handle delete action
@@ -47,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $product = $productRepo->findById($productId);
         if ($product && $product->belongsToVendor($vendorId)) {
             $productRepo->delete($productId);
-            header('Location: /vendor/products.php?success=deleted');
+            header('Location: /Multi-Vendor-Rental-System/public/vendor/products.php?success=deleted');
             exit;
         }
     }
@@ -280,8 +286,8 @@ $pageTitle = 'My Products';
         <h1>🏪 Rental Platform - Vendor Portal</h1>
         <div class="user-info">
             <span>Welcome, <?= htmlspecialchars($user['username']) ?></span>
-            <a href="/dashboard.php" class="btn btn-secondary">Dashboard</a>
-            <a href="/logout.php" class="btn btn-secondary">Logout</a>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/dashboard.php" class="btn btn-secondary">Dashboard</a>
+            <a href="/Multi-Vendor-Rental-System/public/logout.php" class="btn btn-secondary">Logout</a>
         </div>
     </div>
     
