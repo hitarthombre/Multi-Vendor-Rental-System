@@ -275,9 +275,15 @@ class OrderService
     /**
      * Auto-approve orders that don't require verification
      */
-    public function processAutoApprovals(): void
+    public function processAutoApprovals(): array
     {
         $autoApprovedOrders = $this->orderRepo->findByStatus(Order::STATUS_AUTO_APPROVED);
+        $results = [
+            'total_found' => count($autoApprovedOrders),
+            'processed' => 0,
+            'failed' => 0,
+            'errors' => []
+        ];
 
         foreach ($autoApprovedOrders as $order) {
             try {
@@ -287,11 +293,30 @@ class OrderService
                     'system',
                     'Auto-approved order activated'
                 );
+                $results['processed']++;
+                
+                // Log successful auto-approval
+                error_log("Auto-approved order {$order->getOrderNumber()} (ID: {$order->getId()})");
+                
             } catch (Exception $e) {
+                $results['failed']++;
+                $errorMessage = "Failed to auto-approve order {$order->getOrderNumber()} (ID: {$order->getId()}): " . $e->getMessage();
+                $results['errors'][] = $errorMessage;
+                
                 // Log error but continue processing other orders
-                error_log("Failed to auto-approve order {$order->getId()}: " . $e->getMessage());
+                error_log($errorMessage);
             }
         }
+
+        return $results;
+    }
+
+    /**
+     * Get orders by status (for monitoring and reporting)
+     */
+    public function getOrdersByStatus(string $status): array
+    {
+        return $this->orderRepo->findByStatus($status);
     }
 
     /**
