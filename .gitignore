@@ -46,6 +46,9 @@ config/production.php
 coverage/
 .phpunit.result.cache
 
+# Razorpay credentials
+rzp-key.csv
+
 # Build artifacts
 dist/
 build/

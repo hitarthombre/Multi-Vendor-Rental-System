@@ -4,7 +4,9 @@
 
 This implementation plan breaks down the multi-vendor rental platform into incremental, testable tasks. The system will be built using PHP for the backend (running on XAMPP), MySQL for the database, and a frontend framework for the user interfaces. Each task builds on previous work, with property-based tests integrated throughout to validate correctness properties from the design document.
 
-The implementation follows a layered approach: database schema → core backend modules → API endpoints → frontend interfaces → integration and testing.
+**IMPORTANT: UI components are built alongside backend features.** Each task that involves user interaction includes both backend implementation (APIs, business logic) and frontend implementation (pages, forms, components). This ensures features are complete and testable as you progress through the tasks.
+
+The implementation follows a layered approach: database schema → core backend modules with UI → API endpoints with UI → integration and testing.
 
 ## Tasks
 
@@ -53,29 +55,36 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 1.7, 12.4, 18.7, 21.6**
 
 - [ ] 4. Product Management Module
-  - [-] 4.1 Implement product CRUD operations
-    - Create Product, Attribute, AttributeValue, Variant models
-    - Implement product repository with vendor association
-    - Add category management
+  - [-] 4.1 Implement product CRUD operations (Backend + UI)
+    - Backend: Create Product, Attribute, AttributeValue, Variant models
+    - Backend: Implement product repository with vendor association
+    - Backend: Add category management
+    - UI: Create vendor product listing page
+    - UI: Create product creation/edit form
+    - UI: Create category management interface
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
   
   - [ ]* 4.2 Write property test for product-vendor association
     - **Property 7: Product-Vendor Association**
     - **Validates: Requirements 2.2, 2.8**
   
-  - [ ] 4.3 Implement variant and attribute system
-    - Create variant creation with attribute validation
-    - Implement mandatory attribute checking
+  - [ ] 4.3 Implement variant and attribute system (Backend + UI)
+    - Backend: Create variant creation with attribute validation
+    - Backend: Implement mandatory attribute checking
+    - UI: Create attribute selection interface
+    - UI: Create variant configuration form
     - _Requirements: 2.5, 5.2_
   
   - [ ]* 4.4 Write property test for variant attributes
     - **Property 8: Variant Attribute Completeness**
     - **Validates: Requirements 2.5, 5.2**
   
-  - [ ] 4.5 Implement pricing configuration
-    - Create Pricing model
-    - Add pricing per duration unit
-    - Implement verification requirement flag
+  - [ ] 4.5 Implement pricing configuration (Backend + UI)
+    - Backend: Create Pricing model
+    - Backend: Add pricing per duration unit
+    - Backend: Implement verification requirement flag
+    - UI: Create pricing configuration form
+    - UI: Create duration unit selector
     - _Requirements: 2.6, 2.7_
 
 - [ ] 5. Rental Period and Pricing Module
@@ -106,32 +115,43 @@ The implementation follows a layered approach: database schema → core backend 
 - [ ] 6. Checkpoint - Core Models Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Product Discovery and Search
-  - [ ] 7.1 Implement product listing and filtering
-    - Create product query builder
-    - Implement category, attribute, and price filtering
-    - Add availability indicators
+- [ ] 7. Product Discovery and Search (Backend + UI)
+  - [ ] 7.1 Implement product listing and filtering (Backend + UI)
+    - Backend: Create product query builder
+    - Backend: Implement category, attribute, and price filtering
+    - Backend: Add availability indicators
+    - UI: Create customer product browsing page
+    - UI: Create filter sidebar (category, price, attributes)
+    - UI: Create product grid/list view with availability badges
     - _Requirements: 4.1, 4.2, 4.4_
   
-  - [ ] 7.2 Implement search functionality
-    - Create search indexing
-    - Implement keyword search
+  - [ ] 7.2 Implement search functionality (Backend + UI)
+    - Backend: Create search indexing
+    - Backend: Implement keyword search
+    - UI: Create search bar with autocomplete
+    - UI: Create search results page
     - _Requirements: 4.3_
   
   - [ ]* 7.3 Write property test for search relevance
     - **Property 12: Search Result Relevance**
     - **Validates: Requirements 4.3**
   
-  - [ ] 7.4 Implement wishlist functionality
-    - Create wishlist model
-    - Ensure no inventory impact
+  - [ ] 7.4 Implement wishlist functionality (Backend + UI)
+    - Backend: Create wishlist model
+    - Backend: Ensure no inventory impact
+    - UI: Add wishlist button to product cards
+    - UI: Create wishlist page
     - _Requirements: 4.6_
 
-- [ ] 8. Shopping Cart Module
-  - [ ] 8.1 Implement cart operations
-    - Create Cart and CartItem models
-    - Implement add/remove/update operations
-    - Support multi-vendor cart
+- [ ] 8. Shopping Cart Module (Backend + UI)
+  - [ ] 8.1 Implement cart operations (Backend + UI)
+    - Backend: Create Cart and CartItem models
+    - Backend: Implement add/remove/update operations
+    - Backend: Support multi-vendor cart
+    - UI: Create cart page with item list
+    - UI: Create cart summary sidebar
+    - UI: Add quantity controls and remove buttons
+    - UI: Display vendor grouping in cart
     - _Requirements: 6.1, 6.2_
   
   - [ ]* 8.2 Write property test for cart price recalculation
@@ -165,21 +185,24 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 26: Inventory Release on Rejection or Completion**
     - **Validates: Requirements 9.2, 9.3, 9.4, 9.5**
 
-- [ ] 10. Payment Integration Module
-  - [ ] 10.1 Implement Razorpay integration
-    - Set up Razorpay SDK with test credentials
-    - Create Payment model
-    - Implement payment intent creation
+- [ ] 10. Payment Integration Module (Backend + UI)
+  - [ ] 10.1 Implement Razorpay integration (Backend + UI)
+    - Backend: Set up Razorpay SDK with test credentials
+    - Backend: Create Payment model
+    - Backend: Implement payment intent creation
+    - UI: Create checkout page with payment button
+    - UI: Integrate Razorpay payment modal
+    - UI: Create payment success/failure pages
     - _Requirements: 7.1, 7.2_
   
   - [ ]* 10.2 Write property test for payment intent creation
     - **Property 16: Payment Intent Creation**
     - **Validates: Requirements 7.1**
   
-  - [ ] 10.3 Implement payment verification
-    - Create signature verification
-    - Implement amount and intent matching
-    - Add backend verification logic
+  - [ ] 10.3 Implement payment verification (Backend)
+    - Backend: Create signature verification
+    - Backend: Implement amount and intent matching
+    - Backend: Add backend verification logic
     - _Requirements: 7.4, 7.5, 7.6, 21.7_
   
   - [ ]* 10.4 Write property test for payment verification
@@ -187,10 +210,10 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 18: No Orders Without Verified Payment**
     - **Validates: Requirements 7.4, 7.5, 7.6, 8.1**
   
-  - [ ] 10.5 Implement refund processing
-    - Create Refund model
-    - Implement Razorpay refund API integration
-    - Add refund status tracking
+  - [ ] 10.5 Implement refund processing (Backend)
+    - Backend: Create Refund model
+    - Backend: Implement Razorpay refund API integration
+    - Backend: Add refund status tracking
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
   
   - [ ]* 10.6 Write property test for refund processing
@@ -260,20 +283,25 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 34: Status Change Notification**
     - **Validates: Requirements 12.6, 19.1-19.6**
 
-- [ ] 14. Vendor Approval Workflow
-  - [ ] 14.1 Implement approval queue
-    - Create vendor approval queue view
-    - Filter orders by Pending_Vendor_Approval status
+- [ ] 14. Vendor Approval Workflow (Backend + UI)
+  - [ ] 14.1 Implement approval queue (Backend + UI)
+    - Backend: Create vendor approval queue view
+    - Backend: Filter orders by Pending_Vendor_Approval status
+    - UI: Create vendor approval queue page
+    - UI: Display pending orders with customer details
     - _Requirements: 10.1, 17.2_
   
   - [ ]* 14.2 Write property test for approval queue
     - **Property 46: Approval Queue Contains Pending Orders**
     - **Validates: Requirements 17.2**
   
-  - [ ] 14.3 Implement approval and rejection actions
-    - Create approve order method
-    - Create reject order method
-    - Transition to Active_Rental or Rejected
+  - [ ] 14.3 Implement approval and rejection actions (Backend + UI)
+    - Backend: Create approve order method
+    - Backend: Create reject order method
+    - Backend: Transition to Active_Rental or Rejected
+    - UI: Add approve/reject buttons to order review
+    - UI: Create rejection reason modal
+    - UI: Show confirmation dialogs
     - _Requirements: 10.3, 10.4, 10.5_
   
   - [ ]* 14.4 Write property test for approval transitions
@@ -281,34 +309,39 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 28: Rejection Triggers Refund and Inventory Release**
     - **Validates: Requirements 10.4, 10.5, 10.6**
   
-  - [ ] 14.5 Implement auto-approval flow
-    - Automatically transition Auto_Approved to Active_Rental
-    - Skip vendor intervention
+  - [ ] 14.5 Implement auto-approval flow (Backend)
+    - Backend: Automatically transition Auto_Approved to Active_Rental
+    - Backend: Skip vendor intervention
     - _Requirements: 10.7_
   
   - [ ]* 14.6 Write property test for auto-approval
     - **Property 29: Auto-Approval Immediate Activation**
     - **Validates: Requirements 10.7**
 
-- [ ] 15. Document Management Module
-  - [ ] 15.1 Implement document upload
-    - Create Document model
-    - Implement file upload handling
-    - Support PDF, JPG, PNG formats
-    - Store securely with order association
+- [ ] 15. Document Management Module (Backend + UI)
+  - [ ] 15.1 Implement document upload (Backend + UI)
+    - Backend: Create Document model
+    - Backend: Implement file upload handling
+    - Backend: Support PDF, JPG, PNG formats
+    - Backend: Store securely with order association
+    - UI: Create document upload form
+    - UI: Add file type validation
+    - UI: Show upload progress
+    - UI: Display uploaded documents list
     - _Requirements: 11.1, 11.2, 11.3_
   
-  - [ ] 15.2 Implement document access control
-    - Restrict access to customer, vendor, admin
-    - Implement permission checking
+  - [ ] 15.2 Implement document access control (Backend)
+    - Backend: Restrict access to customer, vendor, admin
+    - Backend: Implement permission checking
     - _Requirements: 11.4, 21.5_
   
   - [ ]* 15.3 Write property test for document access control
     - **Property 30: Document Access Control**
     - **Validates: Requirements 11.4, 21.5**
   
-  - [ ] 15.4 Integrate document display in vendor review
-    - Show documents in approval queue
+  - [ ] 15.4 Integrate document display in vendor review (UI)
+    - UI: Show documents in approval queue
+    - UI: Add document preview/download
     - _Requirements: 11.5_
 
 - [ ] 16. Checkpoint - Order and Approval System Complete
@@ -421,168 +454,214 @@ The implementation follows a layered approach: database schema → core backend 
 - [ ] 21. Checkpoint - Core Business Logic Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 22. Customer Dashboard
-  - [ ] 22.1 Implement customer order listing
-    - Display all customer orders
-    - Show order details, status, rental period
+- [ ] 22. Customer Dashboard (Backend + UI)
+  - [ ] 22.1 Implement customer order listing (Backend + UI)
+    - Backend: Create order listing API
+    - Backend: Filter by customer ID
+    - UI: Create customer dashboard page
+    - UI: Display order cards with status badges
+    - UI: Show order details, status, rental period
     - _Requirements: 16.1, 16.2_
   
   - [ ]* 22.2 Write property test for customer dashboard visibility
     - **Property 44: Customer Dashboard Order Visibility**
     - **Validates: Requirements 16.1**
   
-  - [ ] 22.3 Implement order detail view
-    - Show pricing breakdown
-    - Display invoice
-    - Show document upload status
+  - [ ] 22.3 Implement order detail view (Backend + UI)
+    - Backend: Create order detail API
+    - UI: Create order detail page
+    - UI: Show pricing breakdown
+    - UI: Display invoice
+    - UI: Show document upload status
     - _Requirements: 16.3, 16.4_
   
-  - [ ] 22.4 Implement invoice download
-    - Allow download for active and completed rentals
+  - [ ] 22.4 Implement invoice download (Backend + UI)
+    - Backend: Create invoice PDF generation
+    - UI: Add download invoice button
+    - UI: Allow download for active and completed rentals
     - _Requirements: 16.6_
   
-  - [ ] 22.5 Implement status display
-    - Show human-readable status labels
+  - [ ] 22.5 Implement status display (UI)
+    - UI: Show human-readable status labels
+    - UI: Add status-specific colors and icons
     - _Requirements: 16.5_
   
-  - [ ] 22.6 Preserve historical records
-    - Keep completed rentals accessible
+  - [ ] 22.6 Preserve historical records (Backend)
+    - Backend: Keep completed rentals accessible
+    - Backend: Implement order history filtering
     - _Requirements: 16.7_
 
-- [ ] 23. Vendor Dashboard
-  - [ ] 23.1 Implement vendor order listing
-    - Display only vendor's orders
-    - Show approval queue separately
+- [ ] 23. Vendor Dashboard (Backend + UI)
+  - [ ] 23.1 Implement vendor order listing (Backend + UI)
+    - Backend: Create vendor order listing API
+    - Backend: Filter by vendor ID
+    - UI: Create vendor dashboard page
+    - UI: Display only vendor's orders
+    - UI: Show approval queue separately
     - _Requirements: 17.1, 17.2_
   
   - [ ]* 23.2 Write property test for vendor dashboard isolation
     - **Property 45: Vendor Dashboard Order Isolation**
     - **Validates: Requirements 17.1**
   
-  - [ ] 23.3 Implement order review interface
-    - Display customer details
-    - Show rental period
-    - Display uploaded documents
+  - [ ] 23.3 Implement order review interface (Backend + UI)
+    - Backend: Create order detail API for vendors
+    - UI: Create order review page
+    - UI: Display customer details
+    - UI: Show rental period
+    - UI: Display uploaded documents
     - _Requirements: 17.3_
   
-  - [ ] 23.4 Implement approval/rejection actions
-    - Add approve and reject buttons
-    - Trigger backend approval workflow
+  - [ ] 23.4 Implement approval/rejection actions (UI)
+    - UI: Add approve and reject buttons
+    - UI: Trigger backend approval workflow
+    - UI: Show success/error messages
     - _Requirements: 17.4_
   
-  - [ ] 23.5 Implement active rental view
-    - Display active rentals with dates
+  - [ ] 23.5 Implement active rental view (Backend + UI)
+    - Backend: Create active rentals API
+    - UI: Create active rentals page
+    - UI: Display active rentals with dates
     - _Requirements: 17.5_
   
-  - [ ] 23.6 Implement rental completion action
-    - Allow marking as completed
+  - [ ] 23.6 Implement rental completion action (Backend + UI)
+    - Backend: Create completion API
+    - UI: Add mark as completed button
+    - UI: Create completion confirmation modal
     - _Requirements: 17.6_
   
-  - [ ] 23.7 Implement vendor financial view
-    - Display invoices
-    - Show payment status
-    - Show refund records
+  - [ ] 23.7 Implement vendor financial view (Backend + UI)
+    - Backend: Create financial summary API
+    - UI: Create financial dashboard page
+    - UI: Display invoices
+    - UI: Show payment status
+    - UI: Show refund records
     - _Requirements: 17.7_
   
-  - [ ] 23.8 Implement vendor reports
-    - Rental volume report
-    - Revenue report
-    - Product performance report
+  - [ ] 23.8 Implement vendor reports (Backend + UI)
+    - Backend: Create report generation APIs
+    - UI: Create reports page
+    - UI: Rental volume report
+    - UI: Revenue report
+    - UI: Product performance report
     - _Requirements: 17.8_
 
-- [ ] 24. Administrator Dashboard
-  - [ ] 24.1 Implement admin overview
-    - Display all users, vendors, products, orders
+- [ ] 24. Administrator Dashboard (Backend + UI)
+  - [ ] 24.1 Implement admin overview (Backend + UI)
+    - Backend: Create admin dashboard APIs
+    - UI: Create admin dashboard page
+    - UI: Display all users, vendors, products, orders
+    - UI: Show platform statistics
     - _Requirements: 18.1_
   
-  - [ ] 24.2 Implement vendor management
-    - Approve/suspend vendors
-    - Update vendor profiles
+  - [ ] 24.2 Implement vendor management (Backend + UI)
+    - Backend: Create vendor management APIs
+    - UI: Create vendor management page
+    - UI: Approve/suspend vendors
+    - UI: Update vendor profiles
     - _Requirements: 18.2_
   
-  - [ ] 24.3 Implement catalog management
-    - Manage categories
-    - Manage attributes and variants
+  - [ ] 24.3 Implement catalog management (Backend + UI)
+    - Backend: Create catalog management APIs
+    - UI: Create catalog management page
+    - UI: Manage categories
+    - UI: Manage attributes and variants
     - _Requirements: 18.3_
   
-  - [ ] 24.4 Implement platform configuration
-    - Configure verification requirements
-    - Set rental period definitions
+  - [ ] 24.4 Implement platform configuration (Backend + UI)
+    - Backend: Create configuration APIs
+    - UI: Create settings page
+    - UI: Configure verification requirements
+    - UI: Set rental period definitions
     - _Requirements: 18.4_
   
-  - [ ] 24.5 Implement platform analytics
-    - Total rentals
-    - Vendor activity
-    - Payment trends
-    - Refund frequency
+  - [ ] 24.5 Implement platform analytics (Backend + UI)
+    - Backend: Create analytics APIs
+    - UI: Create analytics dashboard
+    - UI: Total rentals charts
+    - UI: Vendor activity graphs
+    - UI: Payment trends visualization
+    - UI: Refund frequency metrics
     - _Requirements: 18.5_
   
-  - [ ] 24.6 Implement order monitoring
-    - Monitor order flows
-    - Identify bottlenecks
+  - [ ] 24.6 Implement order monitoring (Backend + UI)
+    - Backend: Create monitoring APIs
+    - UI: Create order monitoring page
+    - UI: Monitor order flows
+    - UI: Identify bottlenecks
     - _Requirements: 18.6_
 
-- [ ] 25. Reporting and Analytics Module
-  - [ ] 25.1 Implement role-based report filtering
-    - Filter reports by user role
-    - Ensure vendor isolation
+- [ ] 25. Reporting and Analytics Module (Backend + UI)
+  - [ ] 25.1 Implement role-based report filtering (Backend)
+    - Backend: Filter reports by user role
+    - Backend: Ensure vendor isolation
     - _Requirements: 20.1, 20.6_
   
   - [ ]* 25.2 Write property test for report filtering
     - **Property 47: Role-Based Report Filtering**
     - **Validates: Requirements 20.1, 20.6**
   
-  - [ ] 25.3 Implement vendor reports
-    - Rental volume
-    - Revenue summaries
-    - Product performance
-    - Approval rates
+  - [ ] 25.3 Implement vendor reports (Backend + UI)
+    - Backend: Create vendor report APIs
+    - UI: Create vendor reports page
+    - UI: Rental volume charts
+    - UI: Revenue summaries
+    - UI: Product performance tables
+    - UI: Approval rates metrics
     - _Requirements: 20.2_
   
-  - [ ] 25.4 Implement admin reports
-    - Platform-wide rentals
-    - Vendor activity
-    - Payment success rates
-    - Refund frequency
+  - [ ] 25.4 Implement admin reports (Backend + UI)
+    - Backend: Create admin report APIs
+    - UI: Create admin reports page
+    - UI: Platform-wide rentals
+    - UI: Vendor activity
+    - UI: Payment success rates
+    - UI: Refund frequency
     - _Requirements: 20.3_
   
-  - [ ] 25.5 Implement report export
-    - Export to PDF
-    - Export to CSV
-    - Export to Excel
+  - [ ] 25.5 Implement report export (Backend + UI)
+    - Backend: Create export APIs (PDF, CSV, Excel)
+    - UI: Add export buttons
+    - UI: Show export progress
     - _Requirements: 20.4_
   
-  - [ ] 25.6 Ensure report data integrity
-    - Generate from verified records
-    - Use immutable invoices
+  - [ ] 25.6 Ensure report data integrity (Backend)
+    - Backend: Generate from verified records
+    - Backend: Use immutable invoices
     - _Requirements: 20.5_
 
-- [ ] 26. Vendor Branding System
-  - [ ] 26.1 Implement vendor branding configuration
-    - Allow brand color setting
-    - Allow logo upload
+- [ ] 26. Vendor Branding System (Backend + UI)
+  - [ ] 26.1 Implement vendor branding configuration (Backend + UI)
+    - Backend: Create branding configuration APIs
+    - UI: Create vendor branding settings page
+    - UI: Allow brand color setting (color picker)
+    - UI: Allow logo upload
     - _Requirements: 22.1, 22.2_
   
-  - [ ] 26.2 Apply vendor branding to dashboard
-    - Use vendor color in UI elements
-    - Display vendor logo
+  - [ ] 26.2 Apply vendor branding to dashboard (UI)
+    - UI: Use vendor color in UI elements
+    - UI: Display vendor logo in header
+    - UI: Apply theme dynamically
     - _Requirements: 22.3_
   
-  - [ ] 26.3 Apply vendor branding to invoices
-    - Include vendor logo
-    - Use vendor brand color
+  - [ ] 26.3 Apply vendor branding to invoices (Backend)
+    - Backend: Include vendor logo in invoice PDF
+    - Backend: Use vendor brand color in invoice design
     - _Requirements: 22.4_
   
-  - [ ] 26.4 Implement platform branding for customer pages
-    - Use platform branding on customer-facing pages
+  - [ ] 26.4 Implement platform branding for customer pages (UI)
+    - UI: Use platform branding on customer-facing pages
+    - UI: Consistent platform theme
     - _Requirements: 22.5_
   
-  - [ ] 26.5 Implement standardized status colors
-    - Use consistent colors regardless of branding
+  - [ ] 26.5 Implement standardized status colors (UI)
+    - UI: Use consistent colors regardless of branding
+    - UI: Green for active, yellow for pending, red for rejected
     - _Requirements: 22.6_
   
-  - [ ] 26.6 Ensure branding scope isolation
-    - Vendor themes only affect vendor UI
+  - [ ] 26.6 Ensure branding scope isolation (Backend + UI)
+    - Backend: Validate branding scope
+    - UI: Vendor themes only affect vendor UI
     - _Requirements: 22.7_
 
 - [ ] 27. Checkpoint - All Dashboards Complete
@@ -636,32 +715,24 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 50: Error Logging on System Errors**
     - **Validates: Requirements 24.3, 24.7**
 
-- [ ] 29. Frontend Implementation
-  - [ ] 29.1 Implement customer web application
-    - Product browsing and search
-    - Product detail and configuration
-    - Shopping cart
-    - Checkout flow
-    - Payment integration UI
-    - Customer dashboard
-    - _Requirements: 4.1-4.6, 5.1-5.5, 6.1-6.6, 7.3, 16.1-16.7_
+- [ ] 29. Authentication UI and Product Detail Page
+  - [ ] 29.1 Implement authentication UI
+    - UI: Create login page
+    - UI: Create registration page
+    - UI: Create password reset page
+    - UI: Add role selection for registration
+    - _Requirements: 1.2, 1.3_
   
-  - [ ] 29.2 Implement vendor dashboard UI
-    - Approval queue interface
-    - Order review interface
-    - Active rental management
-    - Completion actions
-    - Financial views
-    - Reports interface
-    - Vendor branding application
-    - _Requirements: 17.1-17.8, 22.3_
-  
-  - [ ] 29.3 Implement admin dashboard UI
-    - User and vendor management
-    - Catalog management
-    - Platform configuration
-    - Analytics and monitoring
-    - _Requirements: 18.1-18.6_
+  - [ ] 29.2 Implement product detail page (UI)
+    - UI: Create product detail page
+    - UI: Display product images (gallery/carousel)
+    - UI: Show product description and specifications
+    - UI: Display pricing information
+    - UI: Add rental period selector (date/time picker)
+    - UI: Show variant selection (if applicable)
+    - UI: Add to cart button
+    - UI: Show verification requirements notice
+    - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
 - [ ] 30. Integration and End-to-End Testing
   - [ ]* 30.1 Test complete rental flow
@@ -762,6 +833,7 @@ The implementation follows a layered approach: database schema → core backend 
 
 - Tasks marked with `*` are optional and can be skipped for faster MVP
 - Each task references specific requirements for traceability
+- **UI components are built alongside backend features** - tasks marked "(Backend + UI)" include both API and interface implementation
 - Checkpoints ensure incremental validation
 - Property tests validate universal correctness properties (minimum 100 iterations each)
 - Unit tests validate specific examples and edge cases
@@ -770,3 +842,4 @@ The implementation follows a layered approach: database schema → core backend 
 - Database: MySQL via phpMyAdmin
 - Payment gateway: Razorpay (test credentials provided)
 - Email: SMTP with provided credentials
+- Frontend: Use HTML/CSS/JavaScript (or framework of choice) for UI components
