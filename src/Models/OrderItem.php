@@ -7,7 +7,7 @@ use RentalPlatform\Helpers\UUID;
 /**
  * OrderItem Model
  * 
- * Represents an item within an order
+ * Represents an item within a rental order
  */
 class OrderItem
 {
@@ -19,6 +19,7 @@ class OrderItem
     private int $quantity;
     private float $unitPrice;
     private float $totalPrice;
+    private string $createdAt;
 
     /**
      * Constructor
@@ -31,7 +32,8 @@ class OrderItem
         string $rentalPeriodId,
         int $quantity,
         float $unitPrice,
-        float $totalPrice
+        float $totalPrice,
+        string $createdAt = ''
     ) {
         $this->id = $id;
         $this->orderId = $orderId;
@@ -41,10 +43,11 @@ class OrderItem
         $this->quantity = $quantity;
         $this->unitPrice = $unitPrice;
         $this->totalPrice = $totalPrice;
+        $this->createdAt = $createdAt ?: date('Y-m-d H:i:s');
     }
 
     /**
-     * Create a new order item instance with generated ID
+     * Create a new order item with generated ID
      */
     public static function create(
         string $orderId,
@@ -69,6 +72,20 @@ class OrderItem
         );
     }
 
+    /**
+     * Create from cart item
+     */
+    public static function createFromCartItem(string $orderId, CartItem $cartItem): self
+    {
+        return self::create(
+            $orderId,
+            $cartItem->getProductId(),
+            $cartItem->getVariantId(),
+            $cartItem->getRentalPeriodId(),
+            $cartItem->getQuantity(),
+            $cartItem->getTentativePrice()
+        );
+    }
     // Getters
     public function getId(): string
     {
@@ -110,17 +127,9 @@ class OrderItem
         return $this->totalPrice;
     }
 
-    // Setters
-    public function setQuantity(int $quantity): void
+    public function getCreatedAt(): string
     {
-        $this->quantity = $quantity;
-        $this->totalPrice = $this->unitPrice * $quantity;
-    }
-
-    public function setUnitPrice(float $unitPrice): void
-    {
-        $this->unitPrice = $unitPrice;
-        $this->totalPrice = $unitPrice * $this->quantity;
+        return $this->createdAt;
     }
 
     /**
@@ -136,7 +145,8 @@ class OrderItem
             'rental_period_id' => $this->rentalPeriodId,
             'quantity' => $this->quantity,
             'unit_price' => $this->unitPrice,
-            'total_price' => $this->totalPrice
+            'total_price' => $this->totalPrice,
+            'created_at' => $this->createdAt
         ];
     }
 }

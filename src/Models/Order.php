@@ -11,20 +11,7 @@ use RentalPlatform\Helpers\UUID;
  */
 class Order
 {
-    private string $id;
-    private string $orderNumber;
-    private string $customerId;
-    private string $vendorId;
-    private string $paymentId;
-    private string $status;
-    private float $totalAmount;
-    private ?float $depositAmount;
-    private string $createdAt;
-    private string $updatedAt;
-
-    /**
-     * Valid order statuses
-     */
+    // Order Status Constants
     public const STATUS_PAYMENT_SUCCESSFUL = 'Payment_Successful';
     public const STATUS_PENDING_VENDOR_APPROVAL = 'Pending_Vendor_Approval';
     public const STATUS_AUTO_APPROVED = 'Auto_Approved';
@@ -32,6 +19,40 @@ class Order
     public const STATUS_COMPLETED = 'Completed';
     public const STATUS_REJECTED = 'Rejected';
     public const STATUS_REFUNDED = 'Refunded';
+
+    // Valid status transitions
+    private const VALID_TRANSITIONS = [
+        self::STATUS_PAYMENT_SUCCESSFUL => [
+            self::STATUS_PENDING_VENDOR_APPROVAL,
+            self::STATUS_AUTO_APPROVED
+        ],
+        self::STATUS_PENDING_VENDOR_APPROVAL => [
+            self::STATUS_ACTIVE_RENTAL,
+            self::STATUS_REJECTED
+        ],
+        self::STATUS_AUTO_APPROVED => [
+            self::STATUS_ACTIVE_RENTAL
+        ],
+        self::STATUS_ACTIVE_RENTAL => [
+            self::STATUS_COMPLETED
+        ],
+        self::STATUS_REJECTED => [
+            self::STATUS_REFUNDED
+        ],
+        self::STATUS_COMPLETED => [],
+        self::STATUS_REFUNDED => []
+    ];
+
+    private string $id;
+    private string $orderNumber;
+    private string $customerId;
+    private string $vendorId;
+    private string $paymentId;
+    private string $status;
+    private float $totalAmount;
+    private float $depositAmount;
+    private string $createdAt;
+    private string $updatedAt;
 
     /**
      * Constructor
@@ -44,7 +65,7 @@ class Order
         string $paymentId,
         string $status,
         float $totalAmount,
-        ?float $depositAmount = null,
+        float $depositAmount = 0.0,
         string $createdAt = '',
         string $updatedAt = ''
     ) {
@@ -61,15 +82,15 @@ class Order
     }
 
     /**
-     * Create a new order instance with generated ID and order number
+     * Create a new order with generated ID and order number
      */
     public static function create(
         string $customerId,
         string $vendorId,
         string $paymentId,
-        string $status,
+        string $initialStatus,
         float $totalAmount,
-        ?float $depositAmount = null
+        float $depositAmount = 0.0
     ): self {
         $id = UUID::generate();
         $orderNumber = self::generateOrderNumber();
@@ -80,71 +101,133 @@ class Order
             $customerId,
             $vendorId,
             $paymentId,
-            $status,
+            $initialStatus,
             $totalAmount,
             $depositAmount
         );
     }
 
     /**
-     * Generate unique order number
+     * Generate a unique order number
      */
-    public static function generateOrderNumber(): string
+    private static function generateOrderNumber(): string
     {
         return 'ORD-' . date('Ymd') . '-' . strtoupper(substr(UUID::generate(), 0, 8));
     }
 
     /**
-     * Check if status is valid
-     */
-    public static function isValidStatus(string $status): bool
-    {
-        return in_array($status, [
-            self::STATUS_PAYMENT_SUCCESSFUL,
-            self::STATUS_PENDING_VENDOR_APPROVAL,
-            self::STATUS_AUTO_APPROVED,
-            self::STATUS_ACTIVE_RENTAL,
-            self::STATUS_COMPLETED,
-            self::STATUS_REJECTED,
-            self::STATUS_REFUNDED
-        ], true);
-    }
-
-    /**
-     * Get valid status transitions
-     */
-    public static function getValidTransitions(): array
-    {
-        return [
-            self::STATUS_PAYMENT_SUCCESSFUL => [
-                self::STATUS_PENDING_VENDOR_APPROVAL,
-                self::STATUS_AUTO_APPROVED
-            ],
-            self::STATUS_PENDING_VENDOR_APPROVAL => [
-                self::STATUS_ACTIVE_RENTAL,
-                self::STATUS_REJECTED
-            ],
-            self::STATUS_AUTO_APPROVED => [
-                self::STATUS_ACTIVE_RENTAL
-            ],
-            self::STATUS_ACTIVE_RENTAL => [
-                self::STATUS_COMPLETED
-            ],
-            self::STATUS_REJECTED => [
-                self::STATUS_REFUNDED
-            ],
-            self::STATUS_COMPLETED => [], // Terminal state
-            self::STATUS_REFUNDED => []   // Terminal state
-        ];
-    }
-
-    /**
-     * Check if status transition is valid
+     * Check if a status transition is valid
      */
     public function canTransitionTo(string $newStatus): bool
     {
-        $validTransitions = self::getValidTransitions();
-        return in_array($newStatus, $validTransitions[$this->status] ?? []);
+        return in_array($newStatus, self::VALID_TRANSITIONS[$this->status] ?? []);
+    }
+
+    /**
+     * Get all valid next statuses for current status
+     */
+    public function getValidNextStatuses(): array
+    {
+        return self::VALID_TRANSITIONS[$this->status] ?? [];
+    }
+
+    /**
+     * Transition to a new status
+     * 
+     * @throws \InvalidArgumentException if transition is not valid
+     */
+    public function transitionTo(string $newStatus): void
+    {
+        if (!$this->canTransitionTo($newStatus)) {
+            throw new \InvalidArgumentException(
+                "Invalid status transition from {$this->status} to {$newStatus}"
+            );
+        }
+
+        $this->status = $newStatus;
+        $this->touch();
+    }
+
+    /**
+     * Check if order requires vendor approval
+     */
+    public function requiresVendorApproval(): bool
+    {
+        return $this->status === self::STATUS_PENDING_VENDOR_APPROVAL;
+    }
+
+    /**
+     * Check if order is active
+     */
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE_RENTAL;
+    }
+
+    /**
+     * Check if order is completed
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED;
+    }
+
+    /**
+     * Check if order is rejected
+     */
+    public function isRejected(): bool
+    {
+        return $this->status === self::STATUS_REJECTED;
+    }
+
+    /**
+     * Check if order is refunded
+     */
+    public function isRefunded(): bool
+    {
+        return $this->status === self::STATUS_REFUNDED;
+    }
+
+    /**
+     * Get human-readable status label
+     */
+    public function getStatusLabel(): string
+    {
+        return match($this->status) {
+            self::STATUS_PAYMENT_SUCCESSFUL => 'Payment Successful',
+            self::STATUS_PENDING_VENDOR_APPROVAL => 'Pending Approval',
+            self::STATUS_AUTO_APPROVED => 'Auto Approved',
+            self::STATUS_ACTIVE_RENTAL => 'Active Rental',
+            self::STATUS_COMPLETED => 'Completed',
+            self::STATUS_REJECTED => 'Rejected',
+            self::STATUS_REFUNDED => 'Refunded',
+            default => $this->status
+        };
+    }
+
+    /**
+     * Get status color for UI
+     */
+    public function getStatusColor(): string
+    {
+        return match($this->status) {
+            self::STATUS_PAYMENT_SUCCESSFUL => 'blue',
+            self::STATUS_PENDING_VENDOR_APPROVAL => 'yellow',
+            self::STATUS_AUTO_APPROVED => 'green',
+            self::STATUS_ACTIVE_RENTAL => 'green',
+            self::STATUS_COMPLETED => 'gray',
+            self::STATUS_REJECTED => 'red',
+            self::STATUS_REFUNDED => 'purple',
+            default => 'gray'
+        };
+    }
+
+    /**
+     * Update the order's updated timestamp
+     */
+    public function touch(): void
+    {
+        $this->updatedAt = date('Y-m-d H:i:s');
     }
 
     // Getters
@@ -183,7 +266,7 @@ class Order
         return $this->totalAmount;
     }
 
-    public function getDepositAmount(): ?float
+    public function getDepositAmount(): float
     {
         return $this->depositAmount;
     }
@@ -198,76 +281,6 @@ class Order
         return $this->updatedAt;
     }
 
-    // Setters
-    public function setStatus(string $status): void
-    {
-        if (!self::isValidStatus($status)) {
-            throw new \InvalidArgumentException("Invalid order status: {$status}");
-        }
-        
-        if (!$this->canTransitionTo($status)) {
-            throw new \InvalidArgumentException("Invalid status transition from {$this->status} to {$status}");
-        }
-        
-        $this->status = $status;
-        $this->updatedAt = date('Y-m-d H:i:s');
-    }
-
-    public function setTotalAmount(float $totalAmount): void
-    {
-        $this->totalAmount = $totalAmount;
-        $this->updatedAt = date('Y-m-d H:i:s');
-    }
-
-    public function setDepositAmount(?float $depositAmount): void
-    {
-        $this->depositAmount = $depositAmount;
-        $this->updatedAt = date('Y-m-d H:i:s');
-    }
-
-    /**
-     * Check if order belongs to a specific customer
-     */
-    public function belongsToCustomer(string $customerId): bool
-    {
-        return $this->customerId === $customerId;
-    }
-
-    /**
-     * Check if order belongs to a specific vendor
-     */
-    public function belongsToVendor(string $vendorId): bool
-    {
-        return $this->vendorId === $vendorId;
-    }
-
-    /**
-     * Check if order is in a terminal state
-     */
-    public function isTerminal(): bool
-    {
-        return in_array($this->status, [
-            self::STATUS_COMPLETED,
-            self::STATUS_REFUNDED
-        ]);
-    }
-
-    /**
-     * Check if order requires vendor approval
-     */
-    public function requiresApproval(): bool
-    {
-        return $this->status === self::STATUS_PENDING_VENDOR_APPROVAL;
-    }
-
-    /**
-     * Check if order is active
-     */
-    public function isActive(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE_RENTAL;
-    }
-
     /**
      * Convert to array
      */
@@ -280,6 +293,8 @@ class Order
             'vendor_id' => $this->vendorId,
             'payment_id' => $this->paymentId,
             'status' => $this->status,
+            'status_label' => $this->getStatusLabel(),
+            'status_color' => $this->getStatusColor(),
             'total_amount' => $this->totalAmount,
             'deposit_amount' => $this->depositAmount,
             'created_at' => $this->createdAt,

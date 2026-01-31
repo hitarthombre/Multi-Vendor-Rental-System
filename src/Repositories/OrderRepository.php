@@ -2,351 +2,291 @@
 
 namespace RentalPlatform\Repositories;
 
-use PDO;
-use PDOException;
-use RentalPlatform\Database\Connection;
 use RentalPlatform\Models\Order;
-use RentalPlatform\Models\OrderItem;
+use RentalPlatform\Database\Connection;
+use PDO;
+use Exception;
 
 /**
  * Order Repository
  * 
- * Handles database operations for Order entities
+ * Handles database operations for orders
  */
 class OrderRepository
 {
-    private PDO $db;
+    private PDO $pdo;
 
     public function __construct()
     {
-        $this->db = Connection::getInstance();
+        $this->pdo = Connection::getInstance()->getPdo();
     }
 
     /**
      * Create a new order
-     * 
-     * @param Order $order
-     * @return bool
-     * @throws PDOException
      */
-    public function create(Order $order): bool
+    public function create(Order $order): void
     {
-        $sql = "INSERT INTO orders (id, order_number, customer_id, vendor_id, payment_id, 
-                status, total_amount, deposit_amount, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO orders (
+            id, order_number, customer_id, vendor_id, payment_id, 
+            status, total_amount, deposit_amount, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try {
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
-                $order->getId(),
-                $order->getOrderNumber(),
-                $order->getCustomerId(),
-                $order->getVendorId(),
-                $order->getPaymentId(),
-                $order->getStatus(),
-                $order->getTotalAmount(),
-                $order->getDepositAmount(),
-                $order->getCreatedAt(),
-                $order->getUpdatedAt()
-            ]);
-        } catch (PDOException $e) {
-            throw new PDOException("Failed to create order: " . $e->getMessage(), (int)$e->getCode());
-        }
-    }
-
-    /**
-     * Create order item
-     * 
-     * @param OrderItem $orderItem
-     * @return bool
-     * @throws PDOException
-     */
-    public function createOrderItem(OrderItem $orderItem): bool
-    {
-        $sql = "INSERT INTO order_items (id, order_id, product_id, variant_id, 
-                rental_period_id, quantity, unit_price, total_price) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try {
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
-                $orderItem->getId(),
-                $orderItem->getOrderId(),
-                $orderItem->getProductId(),
-                $orderItem->getVariantId(),
-                $orderItem->getRentalPeriodId(),
-                $orderItem->getQuantity(),
-                $orderItem->getUnitPrice(),
-                $orderItem->getTotalPrice()
-            ]);
-        } catch (PDOException $e) {
-            throw new PDOException("Failed to create order item: " . $e->getMessage(), (int)$e->getCode());
-        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            $order->getId(),
+            $order->getOrderNumber(),
+            $order->getCustomerId(),
+            $order->getVendorId(),
+            $order->getPaymentId(),
+            $order->getStatus(),
+            $order->getTotalAmount(),
+            $order->getDepositAmount(),
+            $order->getCreatedAt(),
+            $order->getUpdatedAt()
+        ]);
     }
 
     /**
      * Find order by ID
-     * 
-     * @param string $id
-     * @return Order|null
      */
     public function findById(string $id): ?Order
     {
-        $sql = "SELECT * FROM orders WHERE id = ? LIMIT 1";
-        
-        $stmt = $this->db->prepare($sql);
+        $sql = "SELECT * FROM orders WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$id]);
         
-        $data = $stmt->fetch();
-        
-        if (!$data) {
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
             return null;
         }
-        
-        return $this->hydrate($data);
+
+        return $this->mapRowToOrder($row);
     }
 
     /**
      * Find order by order number
-     * 
-     * @param string $orderNumber
-     * @return Order|null
      */
     public function findByOrderNumber(string $orderNumber): ?Order
     {
-        $sql = "SELECT * FROM orders WHERE order_number = ? LIMIT 1";
-        
-        $stmt = $this->db->prepare($sql);
+        $sql = "SELECT * FROM orders WHERE order_number = ?";
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$orderNumber]);
         
-        $data = $stmt->fetch();
-        
-        if (!$data) {
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
             return null;
         }
-        
-        return $this->hydrate($data);
-    }
 
-    /**
-     * Find orders by payment ID
-     * 
-     * @param string $paymentId
-     * @return Order[]
-     */
-    public function findByPaymentId(string $paymentId): array
-    {
-        $sql = "SELECT * FROM orders WHERE payment_id = ? ORDER BY created_at DESC";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$paymentId]);
-        
-        $orders = [];
-        while ($data = $stmt->fetch()) {
-            $orders[] = $this->hydrate($data);
-        }
-        
-        return $orders;
+        return $this->mapRowToOrder($row);
     }
 
     /**
      * Find orders by customer ID
-     * 
-     * @param string $customerId
-     * @param string|null $status Filter by status (optional)
-     * @return Order[]
      */
-    public function findByCustomerId(string $customerId, ?string $status = null): array
+    public function findByCustomerId(string $customerId): array
     {
-        if ($status !== null) {
-            $sql = "SELECT * FROM orders WHERE customer_id = ? AND status = ? ORDER BY created_at DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$customerId, $status]);
-        } else {
-            $sql = "SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$customerId]);
-        }
+        $sql = "SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$customerId]);
         
         $orders = [];
-        while ($data = $stmt->fetch()) {
-            $orders[] = $this->hydrate($data);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->mapRowToOrder($row);
         }
-        
+
         return $orders;
     }
 
     /**
      * Find orders by vendor ID
-     * 
-     * @param string $vendorId
-     * @param string|null $status Filter by status (optional)
-     * @return Order[]
      */
-    public function findByVendorId(string $vendorId, ?string $status = null): array
+    public function findByVendorId(string $vendorId): array
     {
-        if ($status !== null) {
-            $sql = "SELECT * FROM orders WHERE vendor_id = ? AND status = ? ORDER BY created_at DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$vendorId, $status]);
-        } else {
-            $sql = "SELECT * FROM orders WHERE vendor_id = ? ORDER BY created_at DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$vendorId]);
-        }
+        $sql = "SELECT * FROM orders WHERE vendor_id = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$vendorId]);
         
         $orders = [];
-        while ($data = $stmt->fetch()) {
-            $orders[] = $this->hydrate($data);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->mapRowToOrder($row);
         }
-        
+
         return $orders;
     }
 
     /**
-     * Find order items by order ID
-     * 
-     * @param string $orderId
-     * @return OrderItem[]
+     * Find orders by status
      */
-    public function findOrderItems(string $orderId): array
+    public function findByStatus(string $status): array
     {
-        $sql = "SELECT * FROM order_items WHERE order_id = ? ORDER BY id";
+        $sql = "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$status]);
         
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$orderId]);
-        
-        $items = [];
-        while ($data = $stmt->fetch()) {
-            $items[] = $this->hydrateOrderItem($data);
+        $orders = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->mapRowToOrder($row);
         }
+
+        return $orders;
+    }
+
+    /**
+     * Find orders by vendor ID and status
+     */
+    public function findByVendorIdAndStatus(string $vendorId, string $status): array
+    {
+        $sql = "SELECT * FROM orders WHERE vendor_id = ? AND status = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$vendorId, $status]);
         
-        return $items;
+        $orders = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->mapRowToOrder($row);
+        }
+
+        return $orders;
     }
 
     /**
      * Update order
-     * 
-     * @param Order $order
-     * @return bool
-     * @throws PDOException
      */
-    public function update(Order $order): bool
+    public function update(Order $order): void
     {
-        $sql = "UPDATE orders 
-                SET status = ?, 
-                    total_amount = ?, 
-                    deposit_amount = ?,
-                    updated_at = ?
-                WHERE id = ?";
+        $sql = "UPDATE orders SET 
+            status = ?, 
+            total_amount = ?, 
+            deposit_amount = ?, 
+            updated_at = ?
+        WHERE id = ?";
 
-        try {
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
-                $order->getStatus(),
-                $order->getTotalAmount(),
-                $order->getDepositAmount(),
-                date('Y-m-d H:i:s'),
-                $order->getId()
-            ]);
-        } catch (PDOException $e) {
-            throw new PDOException("Failed to update order: " . $e->getMessage(), (int)$e->getCode());
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            $order->getStatus(),
+            $order->getTotalAmount(),
+            $order->getDepositAmount(),
+            $order->getUpdatedAt(),
+            $order->getId()
+        ]);
+    }
+
+    /**
+     * Update order status
+     */
+    public function updateStatus(string $orderId, string $newStatus): void
+    {
+        $sql = "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$newStatus, date('Y-m-d H:i:s'), $orderId]);
+    }
+
+    /**
+     * Get orders requiring vendor approval
+     */
+    public function getPendingApprovals(string $vendorId): array
+    {
+        return $this->findByVendorIdAndStatus($vendorId, Order::STATUS_PENDING_VENDOR_APPROVAL);
+    }
+
+    /**
+     * Get active rentals for vendor
+     */
+    public function getActiveRentals(string $vendorId): array
+    {
+        return $this->findByVendorIdAndStatus($vendorId, Order::STATUS_ACTIVE_RENTAL);
+    }
+
+    /**
+     * Get order statistics for vendor
+     */
+    public function getVendorStatistics(string $vendorId): array
+    {
+        $sql = "SELECT 
+            status,
+            COUNT(*) as count,
+            SUM(total_amount) as total_amount
+        FROM orders 
+        WHERE vendor_id = ? 
+        GROUP BY status";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$vendorId]);
+        
+        $stats = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $stats[$row['status']] = [
+                'count' => (int)$row['count'],
+                'total_amount' => (float)$row['total_amount']
+            ];
         }
+
+        return $stats;
+    }
+
+    /**
+     * Get order statistics for admin
+     */
+    public function getAdminStatistics(): array
+    {
+        $sql = "SELECT 
+            status,
+            COUNT(*) as count,
+            SUM(total_amount) as total_amount
+        FROM orders 
+        GROUP BY status";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        
+        $stats = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $stats[$row['status']] = [
+                'count' => (int)$row['count'],
+                'total_amount' => (float)$row['total_amount']
+            ];
+        }
+
+        return $stats;
     }
 
     /**
      * Check if order number exists
-     * 
-     * @param string $orderNumber
-     * @return bool
      */
     public function orderNumberExists(string $orderNumber): bool
     {
         $sql = "SELECT COUNT(*) FROM orders WHERE order_number = ?";
-        
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$orderNumber]);
         
         return $stmt->fetchColumn() > 0;
     }
 
     /**
-     * Count orders by status
-     * 
-     * @param string $status
-     * @return int
+     * Delete order (for testing purposes only)
      */
-    public function countByStatus(string $status): int
+    public function delete(string $id): void
     {
-        $sql = "SELECT COUNT(*) FROM orders WHERE status = ?";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$status]);
-        
-        return (int)$stmt->fetchColumn();
+        $sql = "DELETE FROM orders WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
     }
 
     /**
-     * Get orders requiring vendor approval
-     * 
-     * @param string $vendorId
-     * @return Order[]
+     * Map database row to Order object
      */
-    public function findPendingApproval(string $vendorId): array
-    {
-        return $this->findByVendorId($vendorId, Order::STATUS_PENDING_VENDOR_APPROVAL);
-    }
-
-    /**
-     * Get active rentals for vendor
-     * 
-     * @param string $vendorId
-     * @return Order[]
-     */
-    public function findActiveRentals(string $vendorId): array
-    {
-        return $this->findByVendorId($vendorId, Order::STATUS_ACTIVE_RENTAL);
-    }
-
-    /**
-     * Hydrate order from database row
-     * 
-     * @param array $data
-     * @return Order
-     */
-    private function hydrate(array $data): Order
+    private function mapRowToOrder(array $row): Order
     {
         return new Order(
-            $data['id'],
-            $data['order_number'],
-            $data['customer_id'],
-            $data['vendor_id'],
-            $data['payment_id'],
-            $data['status'],
-            (float)$data['total_amount'],
-            $data['deposit_amount'] ? (float)$data['deposit_amount'] : null,
-            $data['created_at'],
-            $data['updated_at']
-        );
-    }
-
-    /**
-     * Hydrate order item from database row
-     * 
-     * @param array $data
-     * @return OrderItem
-     */
-    private function hydrateOrderItem(array $data): OrderItem
-    {
-        return new OrderItem(
-            $data['id'],
-            $data['order_id'],
-            $data['product_id'],
-            $data['variant_id'],
-            $data['rental_period_id'],
-            (int)$data['quantity'],
-            (float)$data['unit_price'],
-            (float)$data['total_price']
+            $row['id'],
+            $row['order_number'],
+            $row['customer_id'],
+            $row['vendor_id'],
+            $row['payment_id'],
+            $row['status'],
+            (float)$row['total_amount'],
+            (float)$row['deposit_amount'],
+            $row['created_at'],
+            $row['updated_at']
         );
     }
 }

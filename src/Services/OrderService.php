@@ -4,346 +4,424 @@ namespace RentalPlatform\Services;
 
 use RentalPlatform\Models\Order;
 use RentalPlatform\Models\OrderItem;
+use RentalPlatform\Models\AuditLog;
 use RentalPlatform\Repositories\OrderRepository;
+use RentalPlatform\Repositories\OrderItemRepository;
+use RentalPlatform\Repositories\AuditLogRepository;
+use RentalPlatform\Repositories\CartRepository;
+use RentalPlatform\Repositories\CartItemRepository;
 use RentalPlatform\Repositories\ProductRepository;
-use RentalPlatform\Services\AuditLogger;
 use Exception;
 
 /**
  * Order Service
  * 
- * Handles order creation, vendor-wise splitting, and status management
+ * Handles order lifecycle and status management
  */
 class OrderService
 {
-    private OrderRepository $orderRepository;
-    private ProductRepository $productRepository;
-    private AuditLogger $auditLogger;
+    private OrderRepository $orderRepo;
+    private OrderItemRepository $orderItemRepo;
+    private AuditLogRepository $auditLogRepo;
+    private CartRepository $cartRepo;
+    private CartItemRepository $cartItemRepo;
+    private ProductRepository $productRepo;
+    private NotificationService $notificationService;
 
     public function __construct()
     {
-        $this->orderRepository = new OrderRepository();
-        $this->productRepository = new ProductRepository();
-        $this->auditLogger = new AuditLogger();
+        $this->orderRepo = new OrderRepository();
+        $this->orderItemRepo = new OrderItemRepository();
+        $this->auditLogRepo = new AuditLogRepository();
+        $this->cartRepo = new CartRepository();
+        $this->cartItemRepo = new CartItemRepository();
+        $this->productRepo = new ProductRepository();
+        $this->notificationService = new NotificationService();
     }
 
     /**
-     * Create orders from verified payment
+     * Create orders from cart after payment verification
      * 
-     * Task 12.1: Order creation after payment verification
-     * Task 12.3: Vendor-wise order splitting
-     * Task 12.5: Initial order status assignment
-     * 
-     * @param string $paymentId Verified payment ID
-     * @param array $cartItems Cart items grouped by vendor
-     * @param string $customerId Customer ID
-     * @return Order[] Created orders (one per vendor)
+     * @param string $customerId
+     * @param string $paymentId
+     * @return array Array of created orders
      * @throws Exception
      */
-    public function createOrdersFromPayment(string $paymentId, array $cartItems, string $customerId): array
+    public function createOrdersFromCart(string $customerId, string $paymentId): array
     {
-        $orders = [];
-        
-        try {
-            // Group cart items by vendor (Task 12.3: Vendor-wise order splitting)
-            $vendorGroups = $this->groupCartItemsByVendor($cartItems);
-            
-            foreach ($vendorGroups as $vendorId => $items) {
-                // Calculate total amount for this vendor's items
-                $totalAmount = $this->calculateVendorTotal($items);
-                
-                // Determine initial status based on verification requirements (Task 12.5)
-                $initialStatus = $this->determineInitialStatus($items);
-                
-                // Create order for this vendor (Task 12.1)
-                $order = Order::create(
-                    $customerId,
-                    $vendorId,
-                    $paymentId,
-                    $initialStatus,
-                    $totalAmount
-                );
-                
-                // Ensure unique order number
-                $order = $this->ensureUniqueOrderNumber($order);
-                
-                // Save order to database
-                if (!$this->orderRepository->create($order)) {
-                    throw new Exception("Failed to create order for vendor {$vendorId}");
-                }
-                
-                // Create order items
-                foreach ($items as $item) {
-                    $orderItem = OrderItem::create(
-                        $order->getId(),
-                        $item['product_id'],
-                        $item['variant_id'] ?? null,
-                        $item['rental_period_id'],
-                        $item['quantity'],
-                        $item['unit_price']
-                    );
-                    
-                    if (!$this->orderRepository->createOrderItem($orderItem)) {
-                        throw new Exception("Failed to create order item for product {$item['product_id']}");
-                    }
-                }
-                
-                // Log order creation
-                $this->auditLogger->log(
-                    $customerId,
-                    'Order',
-                    $order->getId(),
-                    'created',
-                    null,
-                    $order->toArray()
-                );
-                
-                $orders[] = $order;
-            }
-            
-            return $orders;
-            
-        } catch (Exception $e) {
-            // Log error
-            $this->auditLogger->log(
-                $customerId,
-                'Order',
-                null,
-                'creation_failed',
-                null,
-                ['error' => $e->getMessage(), 'payment_id' => $paymentId]
-            );
-            
-            throw $e;
+        // Get customer's cart
+        $cart = $this->cartRepo->findByCustomerId($customerId);
+        if (!$cart) {
+            throw new Exception('Cart not found');
         }
+
+        $cartItems = $this->cartItemRepo->findByCartId($cart->getId());
+        if (empty($cartItems)) {
+            throw new Exception('Cart is empty');
+        }
+
+        // Group cart items by vendor
+        $vendorGroups = $this->groupCartItemsByVendor($cartItems);
+        
+        $createdOrders = [];
+
+        // Create separate order for each vendor
+        foreach ($vendorGroups as $vendorId => $items) {
+            $order = $this->createOrderForVendor($customerId, $vendorId, $paymentId, $items);
+            $createdOrders[] = $order;
+        }
+
+        // Clear the cart after successful order creation
+        $this->cartItemRepo->deleteByCartId($cart->getId());
+
+        return $createdOrders;
     }
 
     /**
-     * Group cart items by vendor
-     * 
-     * @param array $cartItems
-     * @return array Grouped by vendor_id
-     * @throws Exception
+     * Create order for a specific vendor
      */
-    private function groupCartItemsByVendor(array $cartItems): array
+    private function createOrderForVendor(string $customerId, string $vendorId, string $paymentId, array $cartItems): Order
     {
-        $vendorGroups = [];
-        
+        // Calculate totals
+        $totalAmount = 0;
+        $depositAmount = 0;
+
         foreach ($cartItems as $item) {
-            // Get product to determine vendor
-            $product = $this->productRepository->findById($item['product_id']);
-            
-            if (!$product) {
-                throw new Exception("Product not found: {$item['product_id']}");
-            }
-            
-            if (!$product->isActive()) {
-                throw new Exception("Product is not active: {$item['product_id']}");
-            }
-            
-            $vendorId = $product->getVendorId();
-            
-            if (!isset($vendorGroups[$vendorId])) {
-                $vendorGroups[$vendorId] = [];
-            }
-            
-            // Add vendor_id to item for convenience
-            $item['vendor_id'] = $vendorId;
-            $item['verification_required'] = $product->isVerificationRequired();
-            
-            $vendorGroups[$vendorId][] = $item;
+            $totalAmount += $item->getTotalPrice();
+            // TODO: Add deposit calculation when deposit system is implemented
         }
-        
-        return $vendorGroups;
-    }
 
-    /**
-     * Calculate total amount for vendor's items
-     * 
-     * @param array $items
-     * @return float
-     */
-    private function calculateVendorTotal(array $items): float
-    {
-        $total = 0.0;
-        
-        foreach ($items as $item) {
-            $total += $item['unit_price'] * $item['quantity'];
-        }
-        
-        return $total;
-    }
+        // Determine initial status based on verification requirement
+        $initialStatus = $this->determineInitialStatus($cartItems);
 
-    /**
-     * Determine initial order status based on verification requirements
-     * 
-     * Task 12.5: Initial order status assignment
-     * 
-     * @param array $items
-     * @return string
-     */
-    private function determineInitialStatus(array $items): string
-    {
-        // Check if any item requires verification
-        foreach ($items as $item) {
-            if ($item['verification_required']) {
-                return Order::STATUS_PENDING_VENDOR_APPROVAL;
-            }
-        }
-        
-        // If no items require verification, auto-approve
-        return Order::STATUS_AUTO_APPROVED;
-    }
+        // Create order
+        $order = Order::create(
+            $customerId,
+            $vendorId,
+            $paymentId,
+            $initialStatus,
+            $totalAmount,
+            $depositAmount
+        );
 
-    /**
-     * Ensure order number is unique
-     * 
-     * @param Order $order
-     * @return Order
-     */
-    private function ensureUniqueOrderNumber(Order $order): Order
-    {
-        $attempts = 0;
-        $maxAttempts = 10;
-        
-        while ($this->orderRepository->orderNumberExists($order->getOrderNumber()) && $attempts < $maxAttempts) {
-            // Generate new order number
-            $newOrderNumber = Order::generateOrderNumber();
-            
-            // Create new order instance with unique number
-            $order = new Order(
-                $order->getId(),
-                $newOrderNumber,
-                $order->getCustomerId(),
-                $order->getVendorId(),
-                $order->getPaymentId(),
-                $order->getStatus(),
-                $order->getTotalAmount(),
-                $order->getDepositAmount(),
-                $order->getCreatedAt(),
-                $order->getUpdatedAt()
-            );
-            
-            $attempts++;
+        $this->orderRepo->create($order);
+
+        // Create order items
+        foreach ($cartItems as $cartItem) {
+            $orderItem = OrderItem::createFromCartItem($order->getId(), $cartItem);
+            $this->orderItemRepo->create($orderItem);
         }
-        
-        if ($attempts >= $maxAttempts) {
-            throw new Exception("Failed to generate unique order number after {$maxAttempts} attempts");
-        }
-        
+
+        // Log order creation
+        $this->logOrderStatusChange(
+            $order->getId(),
+            null,
+            $initialStatus,
+            $customerId,
+            'Order created after payment verification'
+        );
+
+        // Send notifications
+        $this->sendOrderCreationNotifications($order);
+
         return $order;
     }
 
     /**
-     * Update order status
+     * Determine initial order status based on products' verification requirements
+     */
+    private function determineInitialStatus(array $cartItems): string
+    {
+        foreach ($cartItems as $item) {
+            $product = $this->productRepo->findById($item->getProductId());
+            if ($product && $product->getVerificationRequired()) {
+                return Order::STATUS_PENDING_VENDOR_APPROVAL;
+            }
+        }
+
+        return Order::STATUS_AUTO_APPROVED;
+    }
+
+    /**
+     * Group cart items by vendor
+     */
+    private function groupCartItemsByVendor(array $cartItems): array
+    {
+        $groups = [];
+
+        foreach ($cartItems as $item) {
+            $product = $this->productRepo->findById($item->getProductId());
+            if (!$product) {
+                continue;
+            }
+
+            $vendorId = $product->getVendorId();
+            if (!isset($groups[$vendorId])) {
+                $groups[$vendorId] = [];
+            }
+
+            $groups[$vendorId][] = $item;
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Transition order status (Task 13.1)
      * 
      * @param string $orderId
      * @param string $newStatus
      * @param string $actorId
-     * @return bool
+     * @param string $reason
      * @throws Exception
      */
-    public function updateOrderStatus(string $orderId, string $newStatus, string $actorId): bool
+    public function transitionOrderStatus(string $orderId, string $newStatus, string $actorId, string $reason = ''): void
     {
-        $order = $this->orderRepository->findById($orderId);
-        
+        $order = $this->orderRepo->findById($orderId);
         if (!$order) {
-            throw new Exception("Order not found: {$orderId}");
+            throw new Exception('Order not found');
         }
-        
+
         $oldStatus = $order->getStatus();
-        
-        // Validate status transition
+
+        // Validate transition
         if (!$order->canTransitionTo($newStatus)) {
             throw new Exception("Invalid status transition from {$oldStatus} to {$newStatus}");
         }
-        
-        // Update status
-        $order->setStatus($newStatus);
-        
-        // Save to database
-        if (!$this->orderRepository->update($order)) {
-            throw new Exception("Failed to update order status");
-        }
-        
-        // Log status change
-        $this->auditLogger->log(
-            $actorId,
-            'Order',
-            $orderId,
-            'status_changed',
-            ['status' => $oldStatus],
-            ['status' => $newStatus]
-        );
-        
-        return true;
+
+        // Perform the transition
+        $order->transitionTo($newStatus);
+        $this->orderRepo->update($order);
+
+        // Log the transition (Task 13.3)
+        $this->logOrderStatusChange($orderId, $oldStatus, $newStatus, $actorId, $reason);
+
+        // Send notifications (Task 13.4)
+        $this->sendStatusChangeNotifications($order, $oldStatus, $newStatus);
+
+        // Handle status-specific actions
+        $this->handleStatusSpecificActions($order, $newStatus);
     }
 
     /**
-     * Get orders by customer
-     * 
-     * @param string $customerId
-     * @param string|null $status
-     * @return Order[]
+     * Approve order (vendor action)
      */
-    public function getCustomerOrders(string $customerId, ?string $status = null): array
+    public function approveOrder(string $orderId, string $vendorId, string $reason = ''): void
     {
-        return $this->orderRepository->findByCustomerId($customerId, $status);
-    }
-
-    /**
-     * Get orders by vendor
-     * 
-     * @param string $vendorId
-     * @param string|null $status
-     * @return Order[]
-     */
-    public function getVendorOrders(string $vendorId, ?string $status = null): array
-    {
-        return $this->orderRepository->findByVendorId($vendorId, $status);
-    }
-
-    /**
-     * Get order with items
-     * 
-     * @param string $orderId
-     * @return array|null
-     */
-    public function getOrderWithItems(string $orderId): ?array
-    {
-        $order = $this->orderRepository->findById($orderId);
-        
+        $order = $this->orderRepo->findById($orderId);
         if (!$order) {
-            return null;
+            throw new Exception('Order not found');
         }
-        
-        $items = $this->orderRepository->findOrderItems($orderId);
-        
-        return [
-            'order' => $order,
-            'items' => $items
-        ];
+
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Verify current status
+        if ($order->getStatus() !== Order::STATUS_PENDING_VENDOR_APPROVAL) {
+            throw new Exception('Order is not pending approval');
+        }
+
+        $this->transitionOrderStatus($orderId, Order::STATUS_ACTIVE_RENTAL, $vendorId, $reason ?: 'Order approved by vendor');
     }
 
     /**
-     * Get pending approval orders for vendor
-     * 
-     * @param string $vendorId
-     * @return Order[]
+     * Reject order (vendor action)
      */
-    public function getPendingApprovalOrders(string $vendorId): array
+    public function rejectOrder(string $orderId, string $vendorId, string $reason): void
     {
-        return $this->orderRepository->findPendingApproval($vendorId);
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Verify current status
+        if ($order->getStatus() !== Order::STATUS_PENDING_VENDOR_APPROVAL) {
+            throw new Exception('Order is not pending approval');
+        }
+
+        $this->transitionOrderStatus($orderId, Order::STATUS_REJECTED, $vendorId, $reason);
+    }
+
+    /**
+     * Complete rental (vendor action)
+     */
+    public function completeRental(string $orderId, string $vendorId, string $reason = ''): void
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Verify current status
+        if ($order->getStatus() !== Order::STATUS_ACTIVE_RENTAL) {
+            throw new Exception('Order is not an active rental');
+        }
+
+        $this->transitionOrderStatus($orderId, Order::STATUS_COMPLETED, $vendorId, $reason ?: 'Rental completed by vendor');
+    }
+
+    /**
+     * Auto-approve orders that don't require verification
+     */
+    public function processAutoApprovals(): void
+    {
+        $autoApprovedOrders = $this->orderRepo->findByStatus(Order::STATUS_AUTO_APPROVED);
+
+        foreach ($autoApprovedOrders as $order) {
+            try {
+                $this->transitionOrderStatus(
+                    $order->getId(),
+                    Order::STATUS_ACTIVE_RENTAL,
+                    'system',
+                    'Auto-approved order activated'
+                );
+            } catch (Exception $e) {
+                // Log error but continue processing other orders
+                error_log("Failed to auto-approve order {$order->getId()}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Get orders for customer
+     */
+    public function getCustomerOrders(string $customerId): array
+    {
+        return $this->orderRepo->findByCustomerId($customerId);
+    }
+
+    /**
+     * Get orders for vendor
+     */
+    public function getVendorOrders(string $vendorId): array
+    {
+        return $this->orderRepo->findByVendorId($vendorId);
+    }
+
+    /**
+     * Get pending approvals for vendor
+     */
+    public function getVendorPendingApprovals(string $vendorId): array
+    {
+        return $this->orderRepo->getPendingApprovals($vendorId);
     }
 
     /**
      * Get active rentals for vendor
-     * 
-     * @param string $vendorId
-     * @return Order[]
      */
-    public function getActiveRentals(string $vendorId): array
+    public function getVendorActiveRentals(string $vendorId): array
     {
-        return $this->orderRepository->findActiveRentals($vendorId);
+        return $this->orderRepo->getActiveRentals($vendorId);
+    }
+
+    /**
+     * Get order details with items
+     */
+    public function getOrderDetails(string $orderId): array
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        $items = $this->orderItemRepo->findWithProductDetails($orderId);
+        $summary = $this->orderItemRepo->getOrderSummary($orderId);
+
+        return [
+            'order' => $order->toArray(),
+            'items' => $items,
+            'summary' => $summary
+        ];
+    }
+
+    /**
+     * Log order status change (Task 13.3)
+     */
+    private function logOrderStatusChange(string $orderId, ?string $oldStatus, string $newStatus, string $actorId, string $reason): void
+    {
+        $auditLog = AuditLog::create(
+            $actorId,
+            'Order',
+            $orderId,
+            'status_change',
+            $oldStatus ? ['status' => $oldStatus] : null,
+            ['status' => $newStatus, 'reason' => $reason]
+        );
+
+        $this->auditLogRepo->create($auditLog);
+    }
+
+    /**
+     * Send order creation notifications
+     */
+    private function sendOrderCreationNotifications(Order $order): void
+    {
+        // Notify customer
+        $this->notificationService->sendOrderCreatedNotification($order->getCustomerId(), $order);
+
+        // Notify vendor if approval is required
+        if ($order->requiresVendorApproval()) {
+            $this->notificationService->sendApprovalRequestNotification($order->getVendorId(), $order);
+        }
+    }
+
+    /**
+     * Send status change notifications (Task 13.4)
+     */
+    private function sendStatusChangeNotifications(Order $order, string $oldStatus, string $newStatus): void
+    {
+        switch ($newStatus) {
+            case Order::STATUS_ACTIVE_RENTAL:
+                $this->notificationService->sendOrderApprovedNotification($order->getCustomerId(), $order);
+                $this->notificationService->sendRentalActivatedNotification($order->getVendorId(), $order);
+                break;
+
+            case Order::STATUS_REJECTED:
+                $this->notificationService->sendOrderRejectedNotification($order->getCustomerId(), $order);
+                break;
+
+            case Order::STATUS_COMPLETED:
+                $this->notificationService->sendRentalCompletedNotification($order->getCustomerId(), $order);
+                $this->notificationService->sendRentalCompletedNotification($order->getVendorId(), $order);
+                break;
+
+            case Order::STATUS_REFUNDED:
+                $this->notificationService->sendRefundNotification($order->getCustomerId(), $order);
+                break;
+        }
+    }
+
+    /**
+     * Handle status-specific actions
+     */
+    private function handleStatusSpecificActions(Order $order, string $newStatus): void
+    {
+        switch ($newStatus) {
+            case Order::STATUS_REJECTED:
+                // TODO: Initiate refund process (will be implemented in payment tasks)
+                // TODO: Release inventory locks (will be implemented in inventory tasks)
+                break;
+
+            case Order::STATUS_COMPLETED:
+                // TODO: Release inventory locks (will be implemented in inventory tasks)
+                // TODO: Enable deposit processing (will be implemented in deposit tasks)
+                break;
+
+            case Order::STATUS_ACTIVE_RENTAL:
+                // TODO: Create inventory locks (will be implemented in inventory tasks)
+                break;
+        }
     }
 }
