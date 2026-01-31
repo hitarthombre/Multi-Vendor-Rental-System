@@ -5,32 +5,16 @@
  * Platform configuration management interface for administrators
  */
 
-require_once __DIR__ . '/../../src/Database/Connection.php';
-require_once __DIR__ . '/../../src/Auth/Session.php';
-require_once __DIR__ . '/../../src/Auth/Authorization.php';
-require_once __DIR__ . '/../../src/Auth/Permission.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use RentalPlatform\Database\Connection;
 use RentalPlatform\Auth\Session;
-use RentalPlatform\Auth\Authorization;
-use RentalPlatform\Auth\Permission;
+use RentalPlatform\Auth\Middleware;
+use RentalPlatform\Models\User;
 
-$session = new Session();
-$auth = new Authorization($session);
-
-// Check authentication and admin permission
-if (!$auth->isAuthenticated() || !$auth->getCurrentUser()->isAdministrator()) {
-    header('Location: /login.php');
-    exit;
-}
-
-$currentUser = $auth->getCurrentUser();
-
-// Check platform config permission
-if (!Permission::hasPermission($currentUser->getRole(), Permission::RESOURCE_PLATFORM_CONFIG, Permission::ACTION_READ)) {
-    header('Location: /admin/dashboard.php?error=insufficient_permissions');
-    exit;
-}
+// Start session and check authentication
+Session::start();
+Middleware::requireAdministrator();
 
 $pageTitle = 'Platform Settings';
 ?>
