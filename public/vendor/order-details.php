@@ -202,9 +202,112 @@ if (empty($orderId)) {
                     <h2 class="text-lg font-medium text-gray-900">Verification Documents</h2>
                 </div>
                 <div class="px-6 py-4">
-                    <div class="text-center py-8 text-gray-500">
+                    <!-- Loading Documents -->
+                    <div x-show="documentsLoading" class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400 mb-2"></i>
+                        <p class="text-sm text-gray-600">Loading documents...</p>
+                    </div>
+
+                    <!-- Documents List -->
+                    <div x-show="!documentsLoading && documents && documents.length > 0" class="space-y-3">
+                        <template x-for="doc in documents" :key="doc.id">
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                <div class="flex items-center space-x-4">
+                                    <!-- File Icon -->
+                                    <div class="flex-shrink-0">
+                                        <i :class="getFileIcon(doc.mime_type)" class="text-3xl text-gray-400"></i>
+                                    </div>
+                                    
+                                    <!-- Document Info -->
+                                    <div>
+                                        <h4 class="font-medium text-gray-900" x-text="doc.document_type"></h4>
+                                        <p class="text-sm text-gray-600">
+                                            <span x-text="formatFileSize(doc.file_size)"></span>
+                                            <span class="mx-2">•</span>
+                                            Uploaded <span x-text="formatDate(doc.uploaded_at)"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="flex items-center space-x-2">
+                                    <!-- Preview Button (for images and PDFs) -->
+                                    <button x-show="canPreview(doc.mime_type)" 
+                                            @click="previewDocument(doc)"
+                                            class="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md">
+                                        <i class="fas fa-eye mr-1"></i>
+                                        Preview
+                                    </button>
+                                    
+                                    <!-- Download Button -->
+                                    <a :href="`/api/documents.php?document_id=${doc.id}`"
+                                       download
+                                       class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md">
+                                        <i class="fas fa-download mr-1"></i>
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- No Documents -->
+                    <div x-show="!documentsLoading && (!documents || documents.length === 0)" class="text-center py-8 text-gray-500">
                         <i class="fas fa-file-alt text-3xl mb-2"></i>
-                        <p>Document upload feature will be implemented in Task 15.1</p>
+                        <p>No verification documents uploaded yet.</p>
+                        <p class="text-sm mt-1">Customer will upload required documents before approval.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Preview Modal -->
+            <div x-show="previewModal" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 @click.self="closePreview()"
+                 class="fixed inset-0 bg-black bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+                 style="display: none;">
+                <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900" x-text="previewDoc?.document_type"></h3>
+                        <button @click="closePreview()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div class="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+                        <!-- Image Preview -->
+                        <div x-show="previewDoc && previewDoc.mime_type.startsWith('image/')" class="text-center">
+                            <img :src="`/api/documents.php?document_id=${previewDoc?.id}`" 
+                                 :alt="previewDoc?.document_type"
+                                 class="max-w-full h-auto rounded-lg shadow-lg">
+                        </div>
+                        
+                        <!-- PDF Preview -->
+                        <div x-show="previewDoc && previewDoc.mime_type === 'application/pdf'" class="w-full h-[70vh]">
+                            <iframe :src="`/api/documents.php?document_id=${previewDoc?.id}`"
+                                    class="w-full h-full border-0 rounded-lg"></iframe>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal Footer -->
+                    <div class="flex items-center justify-end px-6 py-4 border-t border-gray-200 space-x-3">
+                        <a :href="`/api/documents.php?document_id=${previewDoc?.id}`"
+                           download
+                           class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-download mr-2"></i>
+                            Download
+                        </a>
+                        <button @click="closePreview()" 
+                                class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            Close
+                        </button>
                     </div>
                 </div>
             </div>
@@ -347,6 +450,10 @@ if (empty($orderId)) {
                 orderId: orderId,
                 order: null,
                 orderItems: [],
+                documents: [],
+                documentsLoading: false,
+                previewModal: false,
+                previewDoc: null,
                 loading: true,
                 error: '',
                 showApproveModal: false,
@@ -358,6 +465,7 @@ if (empty($orderId)) {
 
                 init() {
                     this.loadOrderDetails();
+                    this.loadDocuments();
                 },
 
                 async loadOrderDetails() {
@@ -515,6 +623,55 @@ if (empty($orderId)) {
                     setTimeout(() => {
                         this.message = '';
                     }, 5000);
+                },
+
+                async loadDocuments() {
+                    this.documentsLoading = true;
+                    
+                    try {
+                        const response = await fetch(`/api/documents.php?order_id=${this.orderId}`);
+                        const data = await response.json();
+                        
+                        if (data.documents) {
+                            this.documents = data.documents;
+                        }
+                    } catch (error) {
+                        console.error('Error loading documents:', error);
+                    } finally {
+                        this.documentsLoading = false;
+                    }
+                },
+
+                getFileIcon(mimeType) {
+                    if (mimeType.startsWith('image/')) {
+                        return 'fas fa-file-image text-blue-500';
+                    } else if (mimeType === 'application/pdf') {
+                        return 'fas fa-file-pdf text-red-500';
+                    } else {
+                        return 'fas fa-file text-gray-500';
+                    }
+                },
+
+                formatFileSize(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+                },
+
+                canPreview(mimeType) {
+                    return mimeType.startsWith('image/') || mimeType === 'application/pdf';
+                },
+
+                previewDocument(doc) {
+                    this.previewDoc = doc;
+                    this.previewModal = true;
+                },
+
+                closePreview() {
+                    this.previewModal = false;
+                    this.previewDoc = null;
                 }
             }
         }

@@ -400,7 +400,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 30: Document Access Control**
     - **Validates: Requirements 11.4, 21.5**
   
-  - [ ] 15.4 Integrate document display in vendor review (UI)
+  - [x] 15.4 Integrate document display in vendor review (UI)
     - UI: Show documents in approval queue
     - UI: Add document preview/download
     - _Requirements: 11.5_
