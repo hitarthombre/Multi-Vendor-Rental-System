@@ -155,6 +155,85 @@ class OrderRepository
     }
 
     /**
+     * Find orders by customer ID and status (Task 22.6)
+     */
+    public function findByCustomerIdAndStatus(string $customerId, string $status): array
+    {
+        $sql = "SELECT * FROM orders WHERE customer_id = ? AND status = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$customerId, $status]);
+        
+        $orders = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->mapRowToOrder($row);
+        }
+
+        return $orders;
+    }
+
+    /**
+     * Find orders by customer ID with filters (Task 22.6)
+     * 
+     * Requirements:
+     * - 16.7: Preserve completed rental records for historical reference
+     * 
+     * @param string $customerId
+     * @param array $filters
+     * @return array
+     */
+    public function findByCustomerIdWithFilters(string $customerId, array $filters = []): array
+    {
+        $sql = "SELECT * FROM orders WHERE customer_id = ?";
+        $params = [$customerId];
+        
+        // Add status filter
+        if (!empty($filters['status'])) {
+            $sql .= " AND status = ?";
+            $params[] = $filters['status'];
+        }
+        
+        // Add date range filter
+        if (!empty($filters['date_from'])) {
+            $sql .= " AND created_at >= ?";
+            $params[] = $filters['date_from'];
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $sql .= " AND created_at <= ?";
+            $params[] = $filters['date_to'];
+        }
+        
+        // Add amount range filter
+        if (!empty($filters['min_amount'])) {
+            $sql .= " AND total_amount >= ?";
+            $params[] = $filters['min_amount'];
+        }
+        
+        if (!empty($filters['max_amount'])) {
+            $sql .= " AND total_amount <= ?";
+            $params[] = $filters['max_amount'];
+        }
+        
+        $sql .= " ORDER BY created_at DESC";
+        
+        // Add limit if specified
+        if (!empty($filters['limit'])) {
+            $sql .= " LIMIT ?";
+            $params[] = (int)$filters['limit'];
+        }
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        $orders = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $orders[] = $this->mapRowToOrder($row);
+        }
+
+        return $orders;
+    }
+
+    /**
      * Update order
      */
     public function update(Order $order): void

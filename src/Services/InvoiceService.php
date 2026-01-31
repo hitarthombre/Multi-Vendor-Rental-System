@@ -321,6 +321,174 @@ class InvoiceService
     }
 
     /**
+     * Generate PDF invoice for download (Task 22.4)
+     * 
+     * Requirements:
+     * - 16.6: Allow customers to download invoices for active and completed rentals
+     * 
+     * @param string $orderId
+     * @return string PDF content
+     * @throws Exception
+     */
+    public function generateInvoicePDF(string $orderId): string
+    {
+        // Get order details
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Get invoice
+        $invoice = $this->invoiceRepo->findByOrderId($orderId);
+        if (!$invoice) {
+            throw new Exception('Invoice not found for this order');
+        }
+
+        // Get invoice details
+        $invoiceDetails = $this->getInvoiceDetails($invoice->getId());
+        $lineItems = $invoiceDetails['line_items'];
+
+        // Generate HTML content for PDF
+        $html = $this->generateInvoiceHTML($order, $invoice, $lineItems);
+
+        // For now, return HTML as PDF content
+        // In a production environment, you would use a library like TCPDF or DomPDF
+        return $this->convertHTMLToPDF($html);
+    }
+
+    /**
+     * Generate HTML content for invoice
+     */
+    private function generateInvoiceHTML($order, $invoice, $lineItems): string
+    {
+        $orderArray = $order->toArray();
+        $invoiceArray = $invoice->toArray();
+        
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <title>Invoice - {$invoiceArray['invoice_number']}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .company-info { margin-bottom: 20px; }
+                .invoice-details { margin-bottom: 20px; }
+                .order-info { margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                .total-row { font-weight: bold; }
+                .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class='header'>
+                <h1>INVOICE</h1>
+                <h2>RentalHub Platform</h2>
+            </div>
+            
+            <div class='company-info'>
+                <strong>RentalHub Multi-Vendor Rental Platform</strong><br>
+                Email: support@rentalhub.com<br>
+                Phone: +91-XXXX-XXXX-XX
+            </div>
+            
+            <div class='invoice-details'>
+                <table>
+                    <tr>
+                        <td><strong>Invoice Number:</strong></td>
+                        <td>{$invoiceArray['invoice_number']}</td>
+                        <td><strong>Invoice Date:</strong></td>
+                        <td>" . date('d/m/Y', strtotime($invoiceArray['created_at'])) . "</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Order Number:</strong></td>
+                        <td>{$orderArray['order_number']}</td>
+                        <td><strong>Order Date:</strong></td>
+                        <td>" . date('d/m/Y', strtotime($orderArray['created_at'])) . "</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class='order-info'>
+                <table>
+                    <tr>
+                        <td><strong>Customer ID:</strong></td>
+                        <td>{$orderArray['customer_id']}</td>
+                        <td><strong>Vendor ID:</strong></td>
+                        <td>{$orderArray['vendor_id']}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment ID:</strong></td>
+                        <td>{$orderArray['payment_id']}</td>
+                        <td><strong>Order Status:</strong></td>
+                        <td>{$orderArray['status']}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Invoice Items</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Tax</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>";
+        
+        foreach ($lineItems as $item) {
+            $html .= "
+                    <tr>
+                        <td>{$item['description']}</td>
+                        <td>{$item['item_type']}</td>
+                        <td>{$item['quantity']}</td>
+                        <td>₹" . number_format($item['unit_price'], 2) . "</td>
+                        <td>₹" . number_format($item['tax_amount'], 2) . "</td>
+                        <td>₹" . number_format($item['total_price'], 2) . "</td>
+                    </tr>";
+        }
+        
+        $html .= "
+                    <tr class='total-row'>
+                        <td colspan='4'><strong>Subtotal</strong></td>
+                        <td>₹" . number_format($invoiceArray['tax_amount'], 2) . "</td>
+                        <td>₹" . number_format($invoiceArray['subtotal'], 2) . "</td>
+                    </tr>
+                    <tr class='total-row'>
+                        <td colspan='5'><strong>TOTAL AMOUNT</strong></td>
+                        <td><strong>₹" . number_format($invoiceArray['total_amount'], 2) . "</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class='footer'>
+                <p>Thank you for choosing RentalHub!</p>
+                <p>This is a computer-generated invoice and does not require a signature.</p>
+                <p>Generated on: " . date('d/m/Y H:i:s') . "</p>
+            </div>
+        </body>
+        </html>";
+    }
+
+    /**
+     * Convert HTML to PDF (simplified version)
+     * In production, use a proper PDF library like TCPDF or DomPDF
+     */
+    private function convertHTMLToPDF(string $html): string
+    {
+        // For now, return HTML content with PDF headers
+        // In production, implement proper PDF conversion
+        return $html;
+    }
+
+    /**
      * Recalculate invoice totals from line items
      * 
      * @param string $invoiceId
