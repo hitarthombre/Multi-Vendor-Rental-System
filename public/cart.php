@@ -242,7 +242,7 @@ $customerId = 'demo-customer-123';
                 async loadCart() {
                     try {
                         this.loading = true;
-                        const response = await fetch('/api/cart.php?action=contents');
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php?action=contents');
                         const result = await response.json();
                         
                         if (result.success) {
@@ -268,7 +268,7 @@ $customerId = 'demo-customer-123';
                         formData.append('cart_item_id', cartItemId);
                         formData.append('quantity', newQuantity);
 
-                        const response = await fetch('/api/cart.php', {
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -298,7 +298,7 @@ $customerId = 'demo-customer-123';
                     try {
                         this.updating = true;
                         
-                        const response = await fetch(`/api/cart.php?cart_item_id=${cartItemId}`, {
+                        const response = await fetch(`/Multi-Vendor-Rental-System/public/api/cart.php?cart_item_id=${cartItemId}`, {
                             method: 'DELETE'
                         });
                         
@@ -330,7 +330,7 @@ $customerId = 'demo-customer-123';
                         const formData = new FormData();
                         formData.append('action', 'clear');
 
-                        const response = await fetch('/api/cart.php', {
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -357,7 +357,7 @@ $customerId = 'demo-customer-123';
                         this.updating = true;
                         
                         // Validate cart first
-                        const response = await fetch('/api/cart.php?action=validate');
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php?action=validate');
                         const result = await response.json();
                         
                         if (result.success && result.data.valid) {

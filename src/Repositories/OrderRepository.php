@@ -28,8 +28,10 @@ class OrderRepository
     {
         $sql = "INSERT INTO orders (
             id, order_number, customer_id, vendor_id, payment_id, 
-            status, total_amount, deposit_amount, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            status, total_amount, deposit_amount, deposit_status, 
+            deposit_withheld_amount, deposit_release_reason, deposit_processed_at,
+            created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
@@ -41,6 +43,10 @@ class OrderRepository
             $order->getStatus(),
             $order->getTotalAmount(),
             $order->getDepositAmount(),
+            $order->getDepositStatus(),
+            $order->getDepositWithheldAmount(),
+            $order->getDepositReleaseReason(),
+            $order->getDepositProcessedAt(),
             $order->getCreatedAt(),
             $order->getUpdatedAt()
         ]);
@@ -157,6 +163,10 @@ class OrderRepository
             status = ?, 
             total_amount = ?, 
             deposit_amount = ?, 
+            deposit_status = ?,
+            deposit_withheld_amount = ?,
+            deposit_release_reason = ?,
+            deposit_processed_at = ?,
             updated_at = ?
         WHERE id = ?";
 
@@ -165,6 +175,10 @@ class OrderRepository
             $order->getStatus(),
             $order->getTotalAmount(),
             $order->getDepositAmount(),
+            $order->getDepositStatus(),
+            $order->getDepositWithheldAmount(),
+            $order->getDepositReleaseReason(),
+            $order->getDepositProcessedAt(),
             $order->getUpdatedAt(),
             $order->getId()
         ]);
@@ -285,6 +299,10 @@ class OrderRepository
             $row['status'],
             (float)$row['total_amount'],
             (float)$row['deposit_amount'],
+            $row['deposit_status'] ?? Order::DEPOSIT_STATUS_HELD,
+            (float)($row['deposit_withheld_amount'] ?? 0.0),
+            $row['deposit_release_reason'] ?? null,
+            $row['deposit_processed_at'] ?? null,
             $row['created_at'],
             $row['updated_at']
         );

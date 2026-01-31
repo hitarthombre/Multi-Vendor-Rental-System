@@ -43,6 +43,12 @@ class Order
         self::STATUS_REFUNDED => []
     ];
 
+    // Deposit Status Constants
+    public const DEPOSIT_STATUS_HELD = 'held';
+    public const DEPOSIT_STATUS_RELEASED = 'released';
+    public const DEPOSIT_STATUS_PARTIALLY_WITHHELD = 'partially_withheld';
+    public const DEPOSIT_STATUS_FULLY_WITHHELD = 'fully_withheld';
+
     private string $id;
     private string $orderNumber;
     private string $customerId;
@@ -51,6 +57,10 @@ class Order
     private string $status;
     private float $totalAmount;
     private float $depositAmount;
+    private string $depositStatus;
+    private float $depositWithheldAmount;
+    private ?string $depositReleaseReason;
+    private ?string $depositProcessedAt;
     private string $createdAt;
     private string $updatedAt;
 
@@ -66,6 +76,10 @@ class Order
         string $status,
         float $totalAmount,
         float $depositAmount = 0.0,
+        string $depositStatus = self::DEPOSIT_STATUS_HELD,
+        float $depositWithheldAmount = 0.0,
+        ?string $depositReleaseReason = null,
+        ?string $depositProcessedAt = null,
         string $createdAt = '',
         string $updatedAt = ''
     ) {
@@ -77,6 +91,10 @@ class Order
         $this->status = $status;
         $this->totalAmount = $totalAmount;
         $this->depositAmount = $depositAmount;
+        $this->depositStatus = $depositStatus;
+        $this->depositWithheldAmount = $depositWithheldAmount;
+        $this->depositReleaseReason = $depositReleaseReason;
+        $this->depositProcessedAt = $depositProcessedAt;
         $this->createdAt = $createdAt ?: date('Y-m-d H:i:s');
         $this->updatedAt = $updatedAt ?: date('Y-m-d H:i:s');
     }
@@ -271,6 +289,26 @@ class Order
         return $this->depositAmount;
     }
 
+    public function getDepositStatus(): string
+    {
+        return $this->depositStatus;
+    }
+
+    public function getDepositWithheldAmount(): float
+    {
+        return $this->depositWithheldAmount;
+    }
+
+    public function getDepositReleaseReason(): ?string
+    {
+        return $this->depositReleaseReason;
+    }
+
+    public function getDepositProcessedAt(): ?string
+    {
+        return $this->depositProcessedAt;
+    }
+
     public function getCreatedAt(): string
     {
         return $this->createdAt;
@@ -279,6 +317,82 @@ class Order
     public function getUpdatedAt(): string
     {
         return $this->updatedAt;
+    }
+
+    /**
+     * Release deposit fully (Task 18.5, Requirements 14.6, 25.3)
+     */
+    public function releaseDeposit(string $reason = 'Rental completed without issues'): void
+    {
+        if ($this->depositAmount <= 0) {
+            throw new \Exception('No deposit to release');
+        }
+
+        if ($this->depositStatus !== self::DEPOSIT_STATUS_HELD) {
+            throw new \Exception('Deposit has already been processed');
+        }
+
+        $this->depositStatus = self::DEPOSIT_STATUS_RELEASED;
+        $this->depositWithheldAmount = 0.0;
+        $this->depositReleaseReason = $reason;
+        $this->depositProcessedAt = date('Y-m-d H:i:s');
+        $this->updatedAt = date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Withhold deposit partially or fully (Task 18.5, Requirements 14.7, 25.4)
+     */
+    public function withholdDeposit(float $amount, string $reason): void
+    {
+        if ($this->depositAmount <= 0) {
+            throw new \Exception('No deposit to withhold');
+        }
+
+        if ($this->depositStatus !== self::DEPOSIT_STATUS_HELD) {
+            throw new \Exception('Deposit has already been processed');
+        }
+
+        if ($amount < 0 || $amount > $this->depositAmount) {
+            throw new \Exception('Invalid withhold amount');
+        }
+
+        $this->depositWithheldAmount = $amount;
+        $this->depositReleaseReason = $reason;
+        $this->depositProcessedAt = date('Y-m-d H:i:s');
+        
+        if ($amount >= $this->depositAmount) {
+            $this->depositStatus = self::DEPOSIT_STATUS_FULLY_WITHHELD;
+        } else {
+            $this->depositStatus = self::DEPOSIT_STATUS_PARTIALLY_WITHHELD;
+        }
+        
+        $this->updatedAt = date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Check if deposit can be processed
+     */
+    public function canProcessDeposit(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED 
+            && $this->depositAmount > 0 
+            && $this->depositStatus === self::DEPOSIT_STATUS_HELD;
+    }
+
+    /**
+     * Get deposit refund amount
+     */
+    public function getDepositRefundAmount(): float
+    {
+        if ($this->depositStatus === self::DEPOSIT_STATUS_RELEASED) {
+            return $this->depositAmount;
+        }
+
+        if ($this->depositStatus === self::DEPOSIT_STATUS_PARTIALLY_WITHHELD) {
+            return $this->depositAmount - $this->depositWithheldAmount;
+        }
+
+        return 0.0;
     }
 
     /**
@@ -297,6 +411,10 @@ class Order
             'status_color' => $this->getStatusColor(),
             'total_amount' => $this->totalAmount,
             'deposit_amount' => $this->depositAmount,
+            'deposit_status' => $this->depositStatus,
+            'deposit_withheld_amount' => $this->depositWithheldAmount,
+            'deposit_release_reason' => $this->depositReleaseReason,
+            'deposit_processed_at' => $this->depositProcessedAt,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt
         ];

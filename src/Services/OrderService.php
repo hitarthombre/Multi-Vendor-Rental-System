@@ -89,9 +89,17 @@ class OrderService
         $depositAmount = 0;
 
         foreach ($cartItems as $item) {
-            $totalAmount += $item->getTotalPrice();
-            // TODO: Add deposit calculation when deposit system is implemented
+            $totalAmount += $item->getTentativePrice() * $item->getQuantity();
+            
+            // Calculate deposit for this item (Task 18.2, Requirement 14.2)
+            $product = $this->productRepo->findById($item->getProductId());
+            if ($product && $product->getSecurityDeposit() > 0) {
+                $depositAmount += $product->getSecurityDeposit() * $item->getQuantity();
+            }
         }
+
+        // Add deposit to total amount (Task 18.2, Requirement 14.2)
+        $totalAmount += $depositAmount;
 
         // Determine initial status based on verification requirement
         $initialStatus = $this->determineInitialStatus($cartItems);
@@ -548,12 +556,106 @@ class OrderService
 
             case Order::STATUS_COMPLETED:
                 // TODO: Release inventory locks (will be implemented in inventory tasks)
-                // TODO: Enable deposit processing (will be implemented in deposit tasks)
+                // Deposit can now be processed by vendor (Task 18.5, Requirement 25.3)
                 break;
 
             case Order::STATUS_ACTIVE_RENTAL:
                 // TODO: Create inventory locks (will be implemented in inventory tasks)
                 break;
         }
+    }
+
+    /**
+     * Release deposit fully (Task 18.5, Requirements 14.6, 25.3)
+     * 
+     * @param string $orderId
+     * @param string $vendorId
+     * @param string $reason
+     * @throws Exception
+     */
+    public function releaseDeposit(string $orderId, string $vendorId, string $reason = 'Rental completed without issues'): void
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Check if order is completed
+        if ($order->getStatus() !== Order::STATUS_COMPLETED) {
+            throw new Exception('Can only process deposit for completed orders');
+        }
+
+        // Release deposit
+        $order->releaseDeposit($reason);
+        $this->orderRepo->update($order);
+
+        // Log the action
+        $this->auditLogger->log(
+            'deposit_released',
+            'Order',
+            $orderId,
+            $vendorId,
+            [
+                'order_number' => $order->getOrderNumber(),
+                'deposit_amount' => $order->getDepositAmount(),
+                'reason' => $reason
+            ]
+        );
+
+        // TODO: Send notification to customer about deposit release
+    }
+
+    /**
+     * Withhold deposit partially or fully (Task 18.5, Requirements 14.7, 25.4)
+     * 
+     * @param string $orderId
+     * @param string $vendorId
+     * @param float $amount
+     * @param string $reason
+     * @throws Exception
+     */
+    public function withholdDeposit(string $orderId, string $vendorId, float $amount, string $reason): void
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Check if order is completed
+        if ($order->getStatus() !== Order::STATUS_COMPLETED) {
+            throw new Exception('Can only process deposit for completed orders');
+        }
+
+        // Withhold deposit
+        $order->withholdDeposit($amount, $reason);
+        $this->orderRepo->update($order);
+
+        // Log the action
+        $this->auditLogger->log(
+            'deposit_withheld',
+            'Order',
+            $orderId,
+            $vendorId,
+            [
+                'order_number' => $order->getOrderNumber(),
+                'deposit_amount' => $order->getDepositAmount(),
+                'withheld_amount' => $amount,
+                'refund_amount' => $order->getDepositRefundAmount(),
+                'reason' => $reason
+            ]
+        );
+
+        // TODO: Send notification to customer about deposit withholding
+        // TODO: Process partial refund if applicable
     }
 }

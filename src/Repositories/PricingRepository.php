@@ -116,6 +116,38 @@ class PricingRepository
     }
 
     /**
+     * Find all pricing rules for a product/variant combination
+     * 
+     * @param string $productId
+     * @param string|null $variantId
+     * @return Pricing[]
+     */
+    public function findByProductAndVariant(string $productId, ?string $variantId): array
+    {
+        if ($variantId) {
+            $sql = "SELECT * FROM pricing WHERE product_id = :product_id AND variant_id = :variant_id ORDER BY duration_unit";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':product_id' => $productId,
+                ':variant_id' => $variantId
+            ]);
+        } else {
+            $sql = "SELECT * FROM pricing WHERE product_id = :product_id AND variant_id IS NULL ORDER BY duration_unit";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':product_id' => $productId]);
+        }
+        
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $pricingRules = [];
+        foreach ($rows as $row) {
+            $pricingRules[] = $this->hydrate($row);
+        }
+        
+        return $pricingRules;
+    }
+
+    /**
      * Find pricing by product/variant and duration unit
      * 
      * @param string $productId

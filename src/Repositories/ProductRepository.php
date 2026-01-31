@@ -31,9 +31,9 @@ class ProductRepository
     public function create(Product $product): bool
     {
         $sql = "INSERT INTO products (id, vendor_id, name, description, category_id, images, 
-                verification_required, status, created_at, updated_at) 
+                verification_required, security_deposit, deposit_description, status, product_type, created_at, updated_at) 
                 VALUES (:id, :vendor_id, :name, :description, :category_id, :images, 
-                :verification_required, :status, :created_at, :updated_at)";
+                :verification_required, :security_deposit, :deposit_description, :status, :product_type, :created_at, :updated_at)";
 
         try {
             $stmt = $this->db->prepare($sql);
@@ -45,7 +45,10 @@ class ProductRepository
                 ':category_id' => $product->getCategoryId(),
                 ':images' => json_encode($product->getImages()),
                 ':verification_required' => $product->isVerificationRequired() ? 1 : 0,
+                ':security_deposit' => $product->getSecurityDeposit(),
+                ':deposit_description' => $product->getDepositDescription(),
                 ':status' => $product->getStatus(),
+                ':product_type' => $product->getProductType(),
                 ':created_at' => $product->getCreatedAt(),
                 ':updated_at' => $product->getUpdatedAt()
             ]);
@@ -184,7 +187,10 @@ class ProductRepository
                     category_id = :category_id, 
                     images = :images,
                     verification_required = :verification_required,
+                    security_deposit = :security_deposit,
+                    deposit_description = :deposit_description,
                     status = :status,
+                    product_type = :product_type,
                     updated_at = :updated_at
                 WHERE id = :id";
 
@@ -197,7 +203,10 @@ class ProductRepository
                 ':category_id' => $product->getCategoryId(),
                 ':images' => json_encode($product->getImages()),
                 ':verification_required' => $product->isVerificationRequired() ? 1 : 0,
+                ':security_deposit' => $product->getSecurityDeposit(),
+                ':deposit_description' => $product->getDepositDescription(),
                 ':status' => $product->getStatus(),
+                ':product_type' => $product->getProductType(),
                 ':updated_at' => date('Y-m-d H:i:s')
             ]);
         } catch (PDOException $e) {
@@ -422,7 +431,10 @@ class ProductRepository
             $data['category_id'],
             $images,
             (bool)$data['verification_required'],
+            (float)($data['security_deposit'] ?? 0.00),
+            $data['deposit_description'] ?? null,
             $data['status'],
+            $data['product_type'] ?? Product::TYPE_RENTAL,
             $data['created_at'],
             $data['updated_at']
         );

@@ -232,14 +232,13 @@ class CartRepository
         return new CartItem(
             $row['id'],
             $row['cart_id'],
-            $row['variant_id'],
             $row['product_id'],
-            $row['vendor_id'],
+            $row['variant_id'],
+            $row['rental_period_id'],
             (int)$row['quantity'],
-            (float)$row['price_per_unit'],
-            new DateTime($row['start_date']),
-            new DateTime($row['end_date']),
-            new DateTime($row['created_at'])
+            (float)$row['tentative_price'],
+            $row['created_at'],
+            $row['updated_at']
         );
     }
 }

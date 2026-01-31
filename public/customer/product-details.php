@@ -516,11 +516,25 @@ try {
             formData.append('end_datetime', endDateTime);
             formData.append('quantity', quantity);
             
-            fetch('../api/cart.php', {
+            fetch('/Multi-Vendor-Rental-System/public/api/cart.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                // Check if response is ok
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                // Check if response is JSON
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    return response.text().then(text => {
+                        console.error('Non-JSON response:', text);
+                        throw new Error('Server returned non-JSON response. Please check browser console for details.');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert('Item added to cart successfully!');

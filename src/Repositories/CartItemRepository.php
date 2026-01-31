@@ -99,7 +99,7 @@ class CartItemRepository
     public function findWithProductDetails(string $cartId): array
     {
         $sql = "SELECT ci.*, p.name, p.description, p.images, p.verification_required,
-                       v.name as vendor_name, v.business_name,
+                       v.business_name as vendor_name, v.business_name,
                        var.sku, var.attribute_values,
                        rp.start_datetime, rp.end_datetime, rp.duration_value, rp.duration_unit
                 FROM cart_items ci
@@ -115,8 +115,9 @@ class CartItemRepository
         
         $items = [];
         while ($data = $stmt->fetch()) {
+            $cartItem = $this->hydrate($data);
             $items[] = [
-                'cart_item' => $this->hydrate($data),
+                'cart_item' => $cartItem->toArray(),
                 'product' => [
                     'id' => $data['product_id'],
                     'name' => $data['name'],

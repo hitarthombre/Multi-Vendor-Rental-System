@@ -74,7 +74,7 @@ function cartSummary() {
 
         async loadSummary() {
             try {
-                const response = await fetch('/api/cart.php?action=summary');
+                const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php?action=summary');
                 const result = await response.json();
                 
                 if (result.success) {
@@ -90,7 +90,7 @@ function cartSummary() {
         async proceedToCheckout() {
             // Validate cart first
             try {
-                const response = await fetch('/api/cart.php?action=validate');
+                const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php?action=validate');
                 const result = await response.json();
                 
                 if (result.success && result.data.valid) {

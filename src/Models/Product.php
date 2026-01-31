@@ -18,7 +18,10 @@ class Product
     private ?string $categoryId;
     private array $images;
     private bool $verificationRequired;
+    private float $securityDeposit;
+    private ?string $depositDescription;
     private string $status;
+    private string $productType;
     private string $createdAt;
     private string $updatedAt;
 
@@ -28,6 +31,12 @@ class Product
     public const STATUS_ACTIVE = 'Active';
     public const STATUS_INACTIVE = 'Inactive';
     public const STATUS_DELETED = 'Deleted';
+
+    /**
+     * Valid product types
+     */
+    public const TYPE_RENTAL = 'rental';
+    public const TYPE_SERVICE = 'service';
 
     /**
      * Constructor
@@ -40,7 +49,10 @@ class Product
         ?string $categoryId,
         array $images,
         bool $verificationRequired,
+        float $securityDeposit,
+        ?string $depositDescription,
         string $status,
+        string $productType,
         string $createdAt = '',
         string $updatedAt = ''
     ) {
@@ -51,7 +63,10 @@ class Product
         $this->categoryId = $categoryId;
         $this->images = $images;
         $this->verificationRequired = $verificationRequired;
+        $this->securityDeposit = $securityDeposit;
+        $this->depositDescription = $depositDescription;
         $this->status = $status;
+        $this->productType = $productType;
         $this->createdAt = $createdAt ?: date('Y-m-d H:i:s');
         $this->updatedAt = $updatedAt ?: date('Y-m-d H:i:s');
     }
@@ -66,7 +81,10 @@ class Product
         ?string $categoryId = null,
         array $images = [],
         bool $verificationRequired = false,
-        string $status = self::STATUS_ACTIVE
+        float $securityDeposit = 0.00,
+        ?string $depositDescription = null,
+        string $status = self::STATUS_ACTIVE,
+        string $productType = self::TYPE_RENTAL
     ): self {
         $id = UUID::generate();
         
@@ -78,7 +96,10 @@ class Product
             $categoryId,
             $images,
             $verificationRequired,
-            $status
+            $securityDeposit,
+            $depositDescription,
+            $status,
+            $productType
         );
     }
 
@@ -130,9 +151,24 @@ class Product
         return $this->verificationRequired;
     }
 
+    public function getSecurityDeposit(): float
+    {
+        return $this->securityDeposit;
+    }
+
+    public function getDepositDescription(): ?string
+    {
+        return $this->depositDescription;
+    }
+
     public function getStatus(): string
     {
         return $this->status;
+    }
+
+    public function getProductType(): string
+    {
+        return $this->productType;
     }
 
     public function getCreatedAt(): string
@@ -176,6 +212,18 @@ class Product
         $this->updatedAt = date('Y-m-d H:i:s');
     }
 
+    public function setSecurityDeposit(float $securityDeposit): void
+    {
+        $this->securityDeposit = $securityDeposit;
+        $this->updatedAt = date('Y-m-d H:i:s');
+    }
+
+    public function setDepositDescription(?string $depositDescription): void
+    {
+        $this->depositDescription = $depositDescription;
+        $this->updatedAt = date('Y-m-d H:i:s');
+    }
+
     public function setStatus(string $status): void
     {
         if (!self::isValidStatus($status)) {
@@ -185,12 +233,48 @@ class Product
         $this->updatedAt = date('Y-m-d H:i:s');
     }
 
+    public function setProductType(string $productType): void
+    {
+        if (!self::isValidProductType($productType)) {
+            throw new \InvalidArgumentException("Invalid product type: {$productType}");
+        }
+        $this->productType = $productType;
+        $this->updatedAt = date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Check if product type is valid
+     */
+    public static function isValidProductType(string $productType): bool
+    {
+        return in_array($productType, [
+            self::TYPE_RENTAL,
+            self::TYPE_SERVICE
+        ], true);
+    }
+
     /**
      * Check if product is active
      */
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
+    }
+
+    /**
+     * Check if product is a rental product
+     */
+    public function isRentalProduct(): bool
+    {
+        return $this->productType === self::TYPE_RENTAL;
+    }
+
+    /**
+     * Check if product is a service product
+     */
+    public function isServiceProduct(): bool
+    {
+        return $this->productType === self::TYPE_SERVICE;
     }
 
     /**

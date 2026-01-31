@@ -143,6 +143,14 @@ class Cart
         return $grouped;
     }
 
+    /**
+     * Update the updated_at timestamp
+     */
+    public function touch(): void
+    {
+        $this->updatedAt = new DateTime();
+    }
+
     // Getters
     public function getId(): string
     {

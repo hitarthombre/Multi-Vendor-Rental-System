@@ -14,7 +14,7 @@ use RentalPlatform\Services\CartService;
 
 // For demo purposes, use a hardcoded customer ID
 // In a real application, this would come from the session
-$customerId = 'demo-customer-123';
+$customerId = '3aaaaeaf-7e48-4498-b7a9-3b33d29d4748'; // jane_smith
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';

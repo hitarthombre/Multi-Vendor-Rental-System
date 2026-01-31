@@ -449,11 +449,11 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 13.7**
 
 - [ ] 18. Deposits and Additional Charges
-  - [ ] 18.1 Implement security deposit configuration
+  - [x] 18.1 Implement security deposit configuration
     - Allow vendors to set deposit requirements
     - _Requirements: 14.1_
   
-  - [ ] 18.2 Implement deposit collection
+  - [x] 18.2 Implement deposit collection
     - Include deposit in payment amount
     - Record separately from rental revenue
     - _Requirements: 14.2, 14.3_
@@ -462,12 +462,12 @@ The implementation follows a layered approach: database schema → core backend 
     - **Property 39: Deposit Collection with Rental Payment**
     - **Validates: Requirements 14.2**
   
-  - [ ] 18.4 Implement service charge products
+  - [x] 18.4 Implement service charge products
     - Create service-type products for fees
     - Include in invoices as line items
     - _Requirements: 14.4, 14.5_
   
-  - [ ] 18.5 Implement deposit release and penalty application
+  - [x] 18.5 Implement deposit release and penalty application
     - Allow vendor to release deposit on completion
     - Allow penalty application for damages
     - _Requirements: 14.6, 14.7, 25.3, 25.4_
