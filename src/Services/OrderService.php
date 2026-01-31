@@ -264,7 +264,7 @@ class OrderService
     /**
      * Complete rental (vendor action)
      */
-    public function completeRental(string $orderId, string $vendorId, string $reason = ''): void
+    public function completeRental(string $orderId, string $vendorId, string $reason = '', bool $releaseDeposit = true, float $penaltyAmount = 0.0, string $penaltyReason = ''): void
     {
         $order = $this->orderRepo->findById($orderId);
         if (!$order) {
@@ -281,7 +281,102 @@ class OrderService
             throw new Exception('Order is not an active rental');
         }
 
+        // Transition order status to completed
         $this->transitionOrderStatus($orderId, Order::STATUS_COMPLETED, $vendorId, $reason ?: 'Rental completed by vendor');
+
+        // Release inventory locks (Task 19.1 - Requirement 25.2)
+        $this->releaseInventoryLocks($orderId);
+
+        // Process deposit (Task 19.1 - Requirements 25.3, 25.4)
+        if ($order->getDepositAmount() > 0) {
+            $this->processDepositOnCompletion($order, $releaseDeposit, $penaltyAmount, $penaltyReason, $vendorId);
+        }
+
+        // Send completion notifications (Task 19.2 - Requirement 25.6)
+        $this->sendCompletionNotifications($order);
+    }
+
+    /**
+     * Release inventory locks for an order
+     */
+    private function releaseInventoryLocks(string $orderId): void
+    {
+        try {
+            // Import the InventoryLockRepository
+            require_once __DIR__ . '/../Repositories/InventoryLockRepository.php';
+            $inventoryLockRepo = new \RentalPlatform\Repositories\InventoryLockRepository();
+            
+            // Release all locks for this order
+            $inventoryLockRepo->releaseByOrderId($orderId);
+            
+            // Log the inventory release
+            error_log("Released inventory locks for order: $orderId");
+            
+        } catch (Exception $e) {
+            // Log error but don't fail the completion
+            error_log("Failed to release inventory locks for order $orderId: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Process deposit on rental completion
+     */
+    private function processDepositOnCompletion(Order $order, bool $releaseDeposit, float $penaltyAmount, string $penaltyReason, string $vendorId): void
+    {
+        $depositAmount = $order->getDepositAmount();
+        
+        if ($releaseDeposit && $penaltyAmount == 0) {
+            // Full deposit release
+            $this->logDepositAction($order->getId(), 'released', $depositAmount, 'Deposit released - no damages', $vendorId);
+        } elseif ($penaltyAmount > 0) {
+            // Partial release with penalty
+            if ($penaltyAmount > $depositAmount) {
+                throw new Exception('Penalty amount cannot exceed deposit amount');
+            }
+            
+            $releasedAmount = $depositAmount - $penaltyAmount;
+            $this->logDepositAction($order->getId(), 'penalty_applied', $penaltyAmount, $penaltyReason, $vendorId);
+            
+            if ($releasedAmount > 0) {
+                $this->logDepositAction($order->getId(), 'partial_release', $releasedAmount, 'Remaining deposit released after penalty', $vendorId);
+            }
+        } else {
+            // Full deposit withheld
+            $this->logDepositAction($order->getId(), 'withheld', $depositAmount, $penaltyReason ?: 'Deposit withheld by vendor', $vendorId);
+        }
+    }
+
+    /**
+     * Log deposit actions for audit trail
+     */
+    private function logDepositAction(string $orderId, string $action, float $amount, string $reason, string $actorId): void
+    {
+        $auditLog = AuditLog::create(
+            $actorId,
+            'Deposit',
+            $orderId,
+            $action,
+            null,
+            [
+                'amount' => $amount,
+                'reason' => $reason,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]
+        );
+
+        $this->auditLogRepo->create($auditLog);
+    }
+
+    /**
+     * Send completion notifications
+     */
+    private function sendCompletionNotifications(Order $order): void
+    {
+        // Notify customer of completion
+        $this->notificationService->sendRentalCompletedNotification($order->getCustomerId(), $order);
+        
+        // Notify vendor of completion
+        $this->notificationService->sendRentalCompletedNotification($order->getVendorId(), $order);
     }
 
     /**

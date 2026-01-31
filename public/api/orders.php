@@ -152,6 +152,9 @@ try {
                 case 'complete':
                     $orderId = $_POST['order_id'] ?? '';
                     $reason = $_POST['reason'] ?? '';
+                    $releaseDeposit = filter_var($_POST['release_deposit'] ?? true, FILTER_VALIDATE_BOOLEAN);
+                    $penaltyAmount = floatval($_POST['penalty_amount'] ?? 0);
+                    $penaltyReason = $_POST['penalty_reason'] ?? '';
                     
                     if (empty($orderId)) {
                         http_response_code(400);
@@ -162,7 +165,17 @@ try {
                         break;
                     }
                     
-                    $orderService->completeRental($orderId, $vendorId, $reason);
+                    // Validate penalty amount if provided
+                    if ($penaltyAmount > 0 && empty($penaltyReason)) {
+                        http_response_code(400);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Penalty reason is required when applying penalty'
+                        ]);
+                        break;
+                    }
+                    
+                    $orderService->completeRental($orderId, $vendorId, $reason, $releaseDeposit, $penaltyAmount, $penaltyReason);
                     echo json_encode([
                         'success' => true,
                         'message' => 'Rental completed successfully'
