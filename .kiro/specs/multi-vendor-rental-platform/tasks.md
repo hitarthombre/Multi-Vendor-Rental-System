@@ -777,14 +777,14 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 24.3, 24.7**
 
 - [ ] 29. Authentication UI and Product Detail Page
-  - [ ] 29.1 Implement authentication UI
+  - [x] 29.1 Implement authentication UI
     - UI: Create login page
     - UI: Create registration page
     - UI: Create password reset page
     - UI: Add role selection for registration
     - _Requirements: 1.2, 1.3_
   
-  - [ ] 29.2 Implement product detail page (UI)
+  - [x] 29.2 Implement product detail page (UI)
     - UI: Create product detail page
     - UI: Display product images (gallery/carousel)
     - UI: Show product description and specifications
