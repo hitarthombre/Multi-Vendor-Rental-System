@@ -1,0 +1,28 @@
+{
+    "name": "rental-platform/multi-vendor",
+    "description": "Multi-Vendor Rental Platform",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "ext-pdo": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "RentalPlatform\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RentalPlatform\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "migrate": "php migrate.php",
+        "migrate:status": "php migrate.php status"
+    }
+}
