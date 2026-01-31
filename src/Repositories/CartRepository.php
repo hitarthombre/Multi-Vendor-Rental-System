@@ -198,7 +198,7 @@ class CartRepository
      */
     private function loadCartItems(Cart $cart): void
     {
-        $sql = "SELECT * FROM cart_items WHERE cart_id = :cart_id ORDER BY created_at ASC";
+        $sql = "SELECT * FROM cart_items WHERE cart_id = :cart_id AND product_id IS NOT NULL ORDER BY created_at ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['cart_id' => $cart->getId()]);
         
