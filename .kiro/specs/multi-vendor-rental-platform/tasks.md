@@ -380,7 +380,7 @@ The implementation follows a layered approach: database schema → core backend 
     - **Validates: Requirements 10.7**
 
 - [ ] 15. Document Management Module (Backend + UI)
-  - [ ] 15.1 Implement document upload (Backend + UI)
+  - [-] 15.1 Implement document upload (Backend + UI)
     - Backend: Create Document model
     - Backend: Implement file upload handling
     - Backend: Support PDF, JPG, PNG formats
