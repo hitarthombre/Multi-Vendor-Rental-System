@@ -310,4 +310,83 @@ class Session
     {
         return self::toArray();
     }
+
+    /**
+     * Set a session variable
+     * 
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    public static function set(string $key, $value): void
+    {
+        self::start();
+        $_SESSION[$key] = $value;
+    }
+
+    /**
+     * Get a session variable
+     * 
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public static function get(string $key, $default = null)
+    {
+        self::start();
+        return $_SESSION[$key] ?? $default;
+    }
+
+    /**
+     * Check if a session variable exists
+     * 
+     * @param string $key
+     * @return bool
+     */
+    public static function has(string $key): bool
+    {
+        self::start();
+        return isset($_SESSION[$key]);
+    }
+
+    /**
+     * Remove a session variable
+     * 
+     * @param string $key
+     * @return void
+     */
+    public static function remove(string $key): void
+    {
+        self::start();
+        unset($_SESSION[$key]);
+    }
+
+    /**
+     * Get session timeout in seconds
+     * 
+     * @return int
+     */
+    public static function getTimeout(): int
+    {
+        return self::SESSION_TIMEOUT;
+    }
+
+    /**
+     * Get remaining session time in seconds
+     * 
+     * @return int
+     */
+    public static function getRemainingTime(): int
+    {
+        self::start();
+        
+        if (!isset($_SESSION[self::SESSION_KEY_LAST_ACTIVITY])) {
+            return 0;
+        }
+        
+        $elapsed = time() - $_SESSION[self::SESSION_KEY_LAST_ACTIVITY];
+        $remaining = self::SESSION_TIMEOUT - $elapsed;
+        
+        return max(0, $remaining);
+    }
 }
