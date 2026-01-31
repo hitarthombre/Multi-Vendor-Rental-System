@@ -19,7 +19,7 @@ use RentalPlatform\Repositories\VendorRepository;
 // Start session and get user info
 Session::start();
 $userId = Session::getUserId();
-$userRole = Session::getUserRole();
+$userRole = Session::getRole();
 
 // Get vendor ID if user is a vendor
 $vendorId = null;

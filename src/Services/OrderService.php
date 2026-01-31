@@ -976,7 +976,6 @@ class OrderService
         // TODO: Send notification to customer about deposit withholding
         // TODO: Process partial refund if applicable
     }
-}
 
     /**
      * Group cart items by vendor
@@ -1001,3 +1000,4 @@ class OrderService
 
         return $groups;
     }
+}

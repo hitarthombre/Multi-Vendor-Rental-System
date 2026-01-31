@@ -18,20 +18,6 @@ RewriteRule ^(.*)$ /public/$1 [L,QSA]
 ErrorDocument 404 /public/errors/404.php
 ErrorDocument 500 /public/errors/500.php
 
-# File Upload Security
-<FilesMatch "\.(php|phtml|php3|php4|php5|pl|py|jsp|asp|sh|cgi)$">
-    Order Deny,Allow
-    Deny from all
-</FilesMatch>
-
-# Allow PHP files in specific directories
-<Directory "/xampp/htdocs/Multi-Vendor-Rental-System/public">
-    <FilesMatch "\.php$">
-        Order Allow,Deny
-        Allow from all
-    </FilesMatch>
-</Directory>
-
 # Protect sensitive files
 <Files ~ "^\.">
     Order allow,deny
