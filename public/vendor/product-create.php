@@ -5,6 +5,7 @@ use RentalPlatform\Auth\Session;
 use RentalPlatform\Models\Product;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Repositories\CategoryRepository;
+use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Database\Connection;
 
 // Start session and check authentication
@@ -22,9 +23,17 @@ if ($user['role'] !== 'Vendor') {
 }
 
 // Initialize repositories
-$db = Connection::getInstance()->getConnection();
-$productRepo = new ProductRepository($db);
-$categoryRepo = new CategoryRepository($db);
+$productRepo = new ProductRepository();
+$categoryRepo = new CategoryRepository();
+$vendorRepo = new VendorRepository();
+
+// Get vendor profile
+$userId = $user['user_id'];
+$vendor = $vendorRepo->findByUserId($userId);
+
+if (!$vendor) {
+    die('Vendor profile not found. Please contact support.');
+}
 
 $categories = $categoryRepo->findAll();
 $errors = [];
@@ -57,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             $product = Product::create(
-                $user['id'], // vendorId
+                $vendor->getId(), // vendorId from vendors table
                 $formData['name'],
                 $formData['description'],
                 $formData['category_id'],
@@ -66,9 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['status']
             );
             
-            $productRepo->save($product);
+            $productRepo->create($product);
             
-            header('Location: /vendor/products.php?success=created');
+            header('Location: /Multi-Vendor-Rental-System/public/vendor/products.php?success=created');
             exit;
         } catch (Exception $e) {
             $errors[] = 'Failed to create product: ' . $e->getMessage();

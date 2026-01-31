@@ -23,19 +23,27 @@ if ($user['role'] !== 'Vendor') {
 // Get product ID
 $productId = $_GET['id'] ?? '';
 if (empty($productId)) {
-    header('Location: /vendor/products.php');
+    header('Location: /Multi-Vendor-Rental-System/public/vendor/products.php');
     exit;
 }
 
 // Initialize repositories
-$db = Connection::getInstance()->getConnection();
-$productRepo = new ProductRepository($db);
-$categoryRepo = new CategoryRepository($db);
+$productRepo = new ProductRepository();
+$categoryRepo = new CategoryRepository();
+$vendorRepo = new VendorRepository();
+
+// Get vendor profile
+$userId = $user['user_id'];
+$vendor = $vendorRepo->findByUserId($userId);
+
+if (!$vendor) {
+    die('Vendor profile not found. Please contact support.');
+}
 
 // Get product
 $product = $productRepo->findById($productId);
-if (!$product || !$product->belongsToVendor($user['id'])) {
-    header('Location: /vendor/products.php');
+if (!$product || !$product->belongsToVendor($vendor->getId())) {
+    header('Location: /Multi-Vendor-Rental-System/public/vendor/products.php');
     exit;
 }
 
@@ -77,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $productRepo->update($product);
             
-            header('Location: /vendor/products.php?success=updated');
+            header('Location: /Multi-Vendor-Rental-System/public/vendor/products.php?success=updated');
             exit;
         } catch (Exception $e) {
             $errors[] = 'Failed to update product: ' . $e->getMessage();

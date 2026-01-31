@@ -56,6 +56,9 @@ $userRole = $currentUser ? $currentUser['role'] : null;
                         <a href="/Multi-Vendor-Rental-System/public/admin/vendors.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
                             <i class="fas fa-store mr-2"></i>Vendors
                         </a>
+                        <a href="/Multi-Vendor-Rental-System/public/admin/categories.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
+                            <i class="fas fa-folder mr-2"></i>Categories
+                        </a>
                         <a href="/Multi-Vendor-Rental-System/public/admin/audit-logs.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
                             <i class="fas fa-clipboard-list mr-2"></i>Audit Logs
                         </a>

@@ -40,7 +40,7 @@ ob_start();
 
 <!-- Quick Actions -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <a href="/Multi-Vendor-Rental-System/public/customer/browse.php" 
+    <a href="/Multi-Vendor-Rental-System/public/customer/products.php" 
        class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all group">
         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
             <i class="fas fa-search text-blue-600 text-xl"></i>
@@ -49,23 +49,23 @@ ob_start();
         <p class="text-gray-600 text-sm">Explore our wide range of rental products</p>
     </a>
 
-    <a href="/Multi-Vendor-Rental-System/public/customer/cart.php" 
-       class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all group">
-        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 opacity-60 cursor-not-allowed">
+        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
             <i class="fas fa-shopping-cart text-green-600 text-xl"></i>
         </div>
         <h3 class="text-lg font-semibold text-gray-900 mb-2">My Cart</h3>
-        <p class="text-gray-600 text-sm">View items in your shopping cart</p>
-    </a>
+        <p class="text-gray-600 text-sm">Coming soon - View items in your shopping cart</p>
+        <span class="inline-block mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Task 8 - Not Yet Implemented</span>
+    </div>
 
-    <a href="/Multi-Vendor-Rental-System/public/customer/orders.php" 
-       class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all group">
-        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 opacity-60 cursor-not-allowed">
+        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
             <i class="fas fa-list text-purple-600 text-xl"></i>
         </div>
         <h3 class="text-lg font-semibold text-gray-900 mb-2">My Orders</h3>
-        <p class="text-gray-600 text-sm">Track your rental orders</p>
-    </a>
+        <p class="text-gray-600 text-sm">Coming soon - Track your rental orders</p>
+        <span class="inline-block mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Task 12+ - Not Yet Implemented</span>
+    </div>
 </div>
 
 <!-- Coming Soon Section -->

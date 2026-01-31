@@ -5,6 +5,7 @@ use RentalPlatform\Auth\Session;
 use RentalPlatform\Auth\Authorization;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Repositories\CategoryRepository;
+use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Database\Connection;
 
 // Start session and check authentication
@@ -22,13 +23,21 @@ if ($user['role'] !== 'Vendor') {
 }
 
 // Initialize repositories
-$db = Connection::getInstance()->getConnection();
-$productRepo = new ProductRepository($db);
-$categoryRepo = new CategoryRepository($db);
+$productRepo = new ProductRepository();
+$categoryRepo = new CategoryRepository();
+$vendorRepo = new VendorRepository();
+
+// Get vendor profile
+$userId = $user['user_id'];
+$vendor = $vendorRepo->findByUserId($userId);
+
+if (!$vendor) {
+    die('Vendor profile not found. Please contact support.');
+}
 
 // Get vendor's products
-$vendorId = $user['id'];
-$products = $productRepo->findByVendor($vendorId);
+$vendorId = $vendor->getId();
+$products = $productRepo->findByVendorId($vendorId);
 $categories = $categoryRepo->findAll();
 
 // Handle delete action
@@ -291,7 +300,7 @@ $pageTitle = 'My Products';
         
         <div class="page-header">
             <h2>My Products</h2>
-            <a href="/vendor/product-create.php" class="btn btn-primary">+ Add New Product</a>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/product-create.php" class="btn btn-primary">+ Add New Product</a>
         </div>
         
         <?php if (empty($products)): ?>
@@ -299,7 +308,7 @@ $pageTitle = 'My Products';
                 <div class="empty-state-icon">📦</div>
                 <h3>No products yet</h3>
                 <p>Start by adding your first rental product to the platform</p>
-                <a href="/vendor/product-create.php" class="btn btn-primary">Add Your First Product</a>
+                <a href="/Multi-Vendor-Rental-System/public/vendor/product-create.php" class="btn btn-primary">Add Your First Product</a>
             </div>
         <?php else: ?>
             <div class="products-grid">
@@ -324,7 +333,7 @@ $pageTitle = 'My Products';
                                 <?php endif; ?>
                             </div>
                             <div class="product-actions">
-                                <a href="/vendor/product-edit.php?id=<?= htmlspecialchars($product->getId()) ?>" class="btn btn-primary">Edit</a>
+                                <a href="/Multi-Vendor-Rental-System/public/vendor/product-edit.php?id=<?= htmlspecialchars($product->getId()) ?>" class="btn btn-primary">Edit</a>
                                 <form method="POST" style="flex: 1;" onsubmit="return confirm('Are you sure you want to delete this product?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="product_id" value="<?= htmlspecialchars($product->getId()) ?>">

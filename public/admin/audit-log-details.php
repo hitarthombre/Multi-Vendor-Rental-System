@@ -8,8 +8,7 @@ use RentalPlatform\Repositories\AuditLogRepository;
 use RentalPlatform\Repositories\UserRepository;
 
 Session::start();
-Middleware::requireAuthentication();
-Middleware::requireRole('Administrator');
+Middleware::requireAdministrator();
 
 $db = Connection::getInstance();
 $auditLogRepo = new AuditLogRepository($db);

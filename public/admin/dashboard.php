@@ -9,8 +9,7 @@ use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Repositories\ProductRepository;
 
 Session::start();
-Middleware::requireAuthentication();
-Middleware::requireRole('Administrator');
+Middleware::requireAdministrator();
 
 $db = Connection::getInstance();
 $userRepo = new UserRepository();

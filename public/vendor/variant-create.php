@@ -31,15 +31,22 @@ if (empty($productId)) {
 }
 
 // Initialize repositories
-$db = Connection::getInstance()->getConnection();
-$productRepo = new ProductRepository($db);
-$variantRepo = new VariantRepository($db);
+$productRepo = new ProductRepository();
+$variantRepo = new VariantRepository();
 $attributeRepo = new AttributeRepository($db);
 $attributeValueRepo = new AttributeValueRepository($db);
 
 // Get product and verify ownership
 $product = $productRepo->findById($productId);
-if (!$product || !$product->belongsToVendor($user['id'])) {
+
+// Get vendor ID
+$vendorRepo = new VendorRepository();
+$vendor = $vendorRepo->findByUserId($user['user_id']);
+if (!$vendor) {
+    die('Vendor profile not found. Please contact support.');
+}
+
+if (!$product || !$product->belongsToVendor($vendor->getId())) {
     header('Location: /Multi-Vendor-Rental-System/public/vendor/products.php');
     exit;
 }
@@ -88,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['quantity']
             );
             
-            $variantRepo->save($variant);
+            $variantRepo->create($variant);
             
             header('Location: /Multi-Vendor-Rental-System/public/vendor/product-variants.php?product_id=' . $productId . '&success=created');
             exit;

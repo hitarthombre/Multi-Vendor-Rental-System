@@ -1,5 +1,5 @@
 <?php
-require_once '../../src/Services/ProductDiscoveryService.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use RentalPlatform\Services\ProductDiscoveryService;
 

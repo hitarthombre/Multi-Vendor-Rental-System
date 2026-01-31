@@ -8,7 +8,7 @@ use RentalPlatform\Repositories\UserRepository;
 use RentalPlatform\Repositories\VendorRepository;
 
 Session::start();
-Middleware::requireAuthentication();
+Middleware::requireAuth();
 
 $userId = Session::getUserId();
 $userRepo = new UserRepository();
@@ -392,5 +392,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-include __DIR__ . '/layouts/base.php';
+include __DIR__ . '/layouts/modern-base.php';
 ?>
