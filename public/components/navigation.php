@@ -33,8 +33,11 @@ $userRole = $currentUser ? $currentUser['role'] : null;
                         <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
                             <i class="fas fa-shopping-bag mr-2"></i>Orders
                         </a>
-                        <a href="/Multi-Vendor-Rental-System/public/vendor/analytics.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
-                            <i class="fas fa-chart-line mr-2"></i>Analytics
+                        <a href="/Multi-Vendor-Rental-System/public/vendor/financial-view.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
+                            <i class="fas fa-chart-bar mr-2"></i>Financials
+                        </a>
+                        <a href="/Multi-Vendor-Rental-System/public/vendor/reports.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-primary-600">
+                            <i class="fas fa-chart-line mr-2"></i>Reports
                         </a>
                     <?php elseif ($userRole === 'Customer'): ?>
                         <a href="/Multi-Vendor-Rental-System/public/customer/browse.php" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-900 hover:border-primary-500 hover:text-primary-600">
@@ -147,6 +150,8 @@ $userRole = $currentUser ? $currentUser['role'] : null;
                 <a href="/Multi-Vendor-Rental-System/public/vendor/dashboard.php" class="block border-l-4 border-primary-500 bg-primary-50 py-2 pl-3 pr-4 text-base font-medium text-primary-700">Dashboard</a>
                 <a href="/Multi-Vendor-Rental-System/public/vendor/products.php" class="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800">Products</a>
                 <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" class="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800">Orders</a>
+                <a href="/Multi-Vendor-Rental-System/public/vendor/financial-view.php" class="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800">Financials</a>
+                <a href="/Multi-Vendor-Rental-System/public/vendor/reports.php" class="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800">Reports</a>
             <?php endif; ?>
         </div>
         

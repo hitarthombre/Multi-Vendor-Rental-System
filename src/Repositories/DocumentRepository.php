@@ -1,100 +1,190 @@
 <?php
 
-namespace App\Repositories;
+namespace RentalPlatform\Repositories;
 
-use App\Models\Document;
+use RentalPlatform\Models\Document;
+use RentalPlatform\Database\Connection;
+use PDO;
 
+/**
+ * Document Repository
+ * 
+ * Handles database operations for documents
+ */
 class DocumentRepository
 {
-    private $document;
+    private PDO $pdo;
 
     public function __construct()
     {
-        $this->document = new Document();
+        $this->pdo = Connection::getInstance();
     }
 
     /**
-     * Upload and store a document
+     * Create a new document
      */
-    public function uploadDocument(array $documentData): string
+    public function create(Document $document): void
     {
-        return $this->document->create($documentData);
+        $sql = "INSERT INTO documents (
+            id, order_id, customer_id, document_type, 
+            file_name, file_path, file_size, mime_type, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            $document->getId(),
+            $document->getOrderId(),
+            $document->getCustomerId(),
+            $document->getDocumentType(),
+            $document->getFileName(),
+            $document->getFilePath(),
+            $document->getFileSize(),
+            $document->getMimeType(),
+            $document->getCreatedAt()
+        ]);
     }
 
     /**
-     * Get all documents for an order
+     * Find document by ID
      */
-    public function getOrderDocuments(string $orderId): array
+    public function findById(string $id): ?Document
     {
-        return $this->document->getByOrderId($orderId);
-    }
-
-    /**
-     * Get document by ID with access control
-     */
-    public function getDocument(string $documentId, string $userId, string $userRole): ?array
-    {
-        $document = $this->document->getWithDetails($documentId);
+        $sql = "SELECT * FROM documents WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
         
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
+
+        return $this->mapRowToDocument($row);
+    }
+
+    /**
+     * Find documents by order ID
+     */
+    public function findByOrderId(string $orderId): array
+    {
+        $sql = "SELECT * FROM documents WHERE order_id = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$orderId]);
+        
+        $documents = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $documents[] = $this->mapRowToDocument($row);
+        }
+
+        return $documents;
+    }
+
+    /**
+     * Find documents by customer ID
+     */
+    public function findByCustomerId(string $customerId): array
+    {
+        $sql = "SELECT * FROM documents WHERE customer_id = ? ORDER BY created_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$customerId]);
+        
+        $documents = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $documents[] = $this->mapRowToDocument($row);
+        }
+
+        return $documents;
+    }
+
+    /**
+     * Delete document
+     */
+    public function delete(string $id): void
+    {
+        $sql = "DELETE FROM documents WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+    }
+
+    /**
+     * Check if document exists
+     */
+    public function exists(string $id): bool
+    {
+        $sql = "SELECT COUNT(*) FROM documents WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+        
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Get document with access control
+     */
+    public function findWithAccessControl(string $id, string $userId, string $userRole): ?Document
+    {
+        $document = $this->findById($id);
         if (!$document) {
             return null;
         }
 
-        // Access control: customer can only see their own documents
-        if ($userRole === 'Customer' && $document['customer_id'] !== $userId) {
+        // Check access permissions
+        if (!$this->hasAccess($document, $userId, $userRole)) {
             return null;
         }
 
-        // Access control: vendor can only see documents for their orders
-        if ($userRole === 'Vendor' && $document['vendor_id'] !== $userId) {
-            return null;
-        }
-
-        // Admin can see all documents
         return $document;
     }
 
     /**
-     * Get customer's documents
+     * Check if user has access to document
      */
-    public function getCustomerDocuments(string $customerId): array
+    public function hasAccess(Document $document, string $userId, string $userRole): bool
     {
-        return $this->document->getByCustomerId($customerId);
-    }
-
-    /**
-     * Delete document with access control
-     */
-    public function deleteDocument(string $documentId, string $userId, string $userRole): bool
-    {
-        $document = $this->document->getWithDetails($documentId);
-        
-        if (!$document) {
-            return false;
+        // Admin can access all documents
+        if ($userRole === 'Administrator') {
+            return true;
         }
 
-        // Only customer who uploaded or admin can delete
-        if ($userRole === 'Customer' && $document['customer_id'] !== $userId) {
-            return false;
+        // Customer can only access their own documents
+        if ($userRole === 'Customer') {
+            return $document->getCustomerId() === $userId;
         }
 
+        // Vendor can access documents for their orders
         if ($userRole === 'Vendor') {
-            return false; // Vendors cannot delete documents
+            // Need to check if the order belongs to this vendor
+            $orderRepo = new OrderRepository();
+            $order = $orderRepo->findById($document->getOrderId());
+            
+            if (!$order) {
+                return false;
+            }
+
+            // Get vendor ID from user ID
+            $vendorRepo = new VendorRepository();
+            $vendor = $vendorRepo->findByUserId($userId);
+            
+            return $vendor && $order->getVendorId() === $vendor->getId();
         }
 
-        // Delete the file from filesystem
-        if (file_exists($document['file_path'])) {
-            unlink($document['file_path']);
-        }
-
-        return $this->document->delete($documentId);
+        return false;
     }
 
     /**
-     * Check if document exists and user has access
+     * Map database row to Document object
      */
-    public function hasAccess(string $documentId, string $userId, string $userRole): bool
+    private function mapRowToDocument(array $row): Document
     {
-        return $this->getDocument($documentId, $userId, $userRole) !== null;
+        return new Document(
+            $row['id'],
+            $row['order_id'],
+            $row['customer_id'],
+            $row['document_type'],
+            $row['file_name'] ?? basename($row['file_path']),
+            $row['file_path'],
+            (int)$row['file_size'],
+            $row['mime_type'],
+            $row['created_at']
+        );
     }
 }

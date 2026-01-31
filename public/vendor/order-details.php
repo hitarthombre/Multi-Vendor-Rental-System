@@ -240,7 +240,7 @@ if (empty($orderId)) {
                                     </button>
                                     
                                     <!-- Download Button -->
-                                    <a :href="`/api/documents.php?document_id=${doc.id}`"
+                                    <a :href="`/Multi-Vendor-Rental-System/public/api/documents.php?document_id=${doc.id}`"
                                        download
                                        class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md">
                                         <i class="fas fa-download mr-1"></i>
@@ -284,21 +284,21 @@ if (empty($orderId)) {
                     <div class="p-6 overflow-auto max-h-[calc(90vh-120px)]">
                         <!-- Image Preview -->
                         <div x-show="previewDoc && previewDoc.mime_type.startsWith('image/')" class="text-center">
-                            <img :src="`/api/documents.php?document_id=${previewDoc?.id}`" 
+                            <img :src="`/Multi-Vendor-Rental-System/public/api/documents.php?document_id=${previewDoc?.id}`" 
                                  :alt="previewDoc?.document_type"
                                  class="max-w-full h-auto rounded-lg shadow-lg">
                         </div>
                         
                         <!-- PDF Preview -->
                         <div x-show="previewDoc && previewDoc.mime_type === 'application/pdf'" class="w-full h-[70vh]">
-                            <iframe :src="`/api/documents.php?document_id=${previewDoc?.id}`"
+                            <iframe :src="`/Multi-Vendor-Rental-System/public/api/documents.php?document_id=${previewDoc?.id}`"
                                     class="w-full h-full border-0 rounded-lg"></iframe>
                         </div>
                     </div>
                     
                     <!-- Modal Footer -->
                     <div class="flex items-center justify-end px-6 py-4 border-t border-gray-200 space-x-3">
-                        <a :href="`/api/documents.php?document_id=${previewDoc?.id}`"
+                        <a :href="`/Multi-Vendor-Rental-System/public/api/documents.php?document_id=${previewDoc?.id}`"
                            download
                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                             <i class="fas fa-download mr-2"></i>
@@ -473,7 +473,7 @@ if (empty($orderId)) {
                     this.error = '';
                     
                     try {
-                        const response = await fetch(`/api/orders.php?action=order_details&order_id=${this.orderId}`);
+                        const response = await fetch(`/Multi-Vendor-Rental-System/public/api/orders.php?action=order_details&order_id=${this.orderId}`);
                         const data = await response.json();
                         
                         if (data.success) {
@@ -506,7 +506,7 @@ if (empty($orderId)) {
                         formData.append('order_id', this.orderId);
                         formData.append('reason', 'Approved by vendor after review');
 
-                        const response = await fetch('/api/orders.php', {
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/orders.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -554,7 +554,7 @@ if (empty($orderId)) {
                         formData.append('order_id', this.orderId);
                         formData.append('reason', this.rejectionReason);
 
-                        const response = await fetch('/api/orders.php', {
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/orders.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -629,7 +629,7 @@ if (empty($orderId)) {
                     this.documentsLoading = true;
                     
                     try {
-                        const response = await fetch(`/api/documents.php?order_id=${this.orderId}`);
+                        const response = await fetch(`/Multi-Vendor-Rental-System/public/api/documents.php?order_id=${this.orderId}`);
                         const data = await response.json();
                         
                         if (data.documents) {

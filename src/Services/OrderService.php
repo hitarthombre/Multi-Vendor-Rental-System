@@ -487,6 +487,68 @@ class OrderService
     }
 
     /**
+     * Get comprehensive order review data for vendors
+     */
+    public function getVendorOrderReviewData(string $orderId, string $vendorId): array
+    {
+        $order = $this->orderRepo->findById($orderId);
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        // Verify vendor ownership
+        if ($order->getVendorId() !== $vendorId) {
+            throw new Exception('Unauthorized: Order does not belong to this vendor');
+        }
+
+        // Get order items with product details
+        $items = $this->orderItemRepo->findWithProductDetails($orderId);
+        $summary = $this->orderItemRepo->getOrderSummary($orderId);
+
+        // Get customer details
+        $userRepo = new \RentalPlatform\Repositories\UserRepository();
+        $customer = $userRepo->findById($order->getCustomerId());
+
+        // Get uploaded documents
+        $documentRepo = new \RentalPlatform\Repositories\DocumentRepository();
+        $documents = $documentRepo->findByOrderId($orderId);
+
+        // Get payment details
+        $paymentRepo = new \RentalPlatform\Repositories\PaymentRepository();
+        $payment = $paymentRepo->findById($order->getPaymentId());
+
+        return [
+            'order' => $order->toArray(),
+            'items' => $items,
+            'summary' => $summary,
+            'customer' => $customer ? [
+                'id' => $customer->getId(),
+                'username' => $customer->getUsername(),
+                'email' => $customer->getEmail(),
+                'created_at' => $customer->getCreatedAt()
+            ] : null,
+            'documents' => array_map(function($doc) {
+                return [
+                    'id' => $doc->getId(),
+                    'document_type' => $doc->getDocumentType(),
+                    'file_name' => $doc->getFileName(),
+                    'file_size' => $doc->getFileSize(),
+                    'mime_type' => $doc->getMimeType(),
+                    'uploaded_at' => $doc->getCreatedAt()
+                ];
+            }, $documents),
+            'payment' => $payment ? [
+                'id' => $payment->getId(),
+                'amount' => $payment->getAmount(),
+                'currency' => $payment->getCurrency(),
+                'status' => $payment->getStatus(),
+                'verified_at' => $payment->getVerifiedAt(),
+                'created_at' => $payment->getCreatedAt()
+            ] : null
+        ];
+    }
+
+    /**
      * Log order status change (Task 13.3)
      */
     private function logOrderStatusChange(string $orderId, ?string $oldStatus, string $newStatus, string $actorId, string $reason): void

@@ -9,13 +9,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once '../../src/Services/OrderService.php';
+require_once '../../src/Auth/Session.php';
+require_once '../../src/Repositories/VendorRepository.php';
 
 use RentalPlatform\Services\OrderService;
+use RentalPlatform\Auth\Session;
+use RentalPlatform\Repositories\VendorRepository;
 
-// For demo purposes, use hardcoded user IDs
-// In a real application, these would come from the session
-$customerId = 'demo-customer-123';
-$vendorId = 'demo-vendor-456';
+// Start session and get user info
+Session::start();
+$userId = Session::getUserId();
+$userRole = Session::getUserRole();
+
+// Get vendor ID if user is a vendor
+$vendorId = null;
+if ($userRole === 'vendor' && $userId) {
+    $vendorRepo = new VendorRepository();
+    $vendor = $vendorRepo->findByUserId($userId);
+    if ($vendor) {
+        $vendorId = $vendor->getId();
+    }
+}
+
+// Handle JSON input
+$input = json_decode(file_get_contents('php://input'), true);
+if ($input) {
+    $_POST = array_merge($_POST, $input);
+}
+
+// For demo purposes, use hardcoded user IDs when session is not available
+$customerId = $userId ?? 'demo-customer-123';
 $adminId = 'demo-admin-789';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -77,6 +100,33 @@ try {
                     ]);
                     break;
                     
+                case 'vendor_order_review':
+                    $orderId = $_GET['order_id'] ?? '';
+                    if (empty($orderId)) {
+                        http_response_code(400);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Missing order_id parameter'
+                        ]);
+                        break;
+                    }
+                    
+                    if (!$vendorId) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Vendor access required'
+                        ]);
+                        break;
+                    }
+                    
+                    $reviewData = $orderService->getVendorOrderReviewData($orderId, $vendorId);
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $reviewData
+                    ]);
+                    break;
+                    
                 default:
                     http_response_code(400);
                     echo json_encode([
@@ -122,6 +172,15 @@ try {
                         break;
                     }
                     
+                    if (!$vendorId) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Vendor access required'
+                        ]);
+                        break;
+                    }
+                    
                     $orderService->approveOrder($orderId, $vendorId, $reason);
                     echo json_encode([
                         'success' => true,
@@ -138,6 +197,15 @@ try {
                         echo json_encode([
                             'success' => false,
                             'error' => 'Missing order_id or reason'
+                        ]);
+                        break;
+                    }
+                    
+                    if (!$vendorId) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Vendor access required'
                         ]);
                         break;
                     }

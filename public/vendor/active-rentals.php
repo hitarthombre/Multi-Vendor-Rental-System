@@ -1,414 +1,268 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../vendor/autoload.php';
 
-// For demo purposes, use hardcoded vendor ID
-// In a real application, this would come from the session
-$vendorId = 'demo-vendor-456';
-$vendorName = 'Demo Vendor';
+use RentalPlatform\Auth\Session;
+use RentalPlatform\Auth\Middleware;
+use RentalPlatform\Models\User;
+use RentalPlatform\Models\Order;
+use RentalPlatform\Repositories\VendorRepository;
+use RentalPlatform\Repositories\OrderRepository;
+use RentalPlatform\Repositories\OrderItemRepository;
+use RentalPlatform\Repositories\UserRepository;
+use RentalPlatform\Database\Connection;
+
+Session::start();
+Middleware::requireRole(User::ROLE_VENDOR);
+
+$userId = Session::getUserId();
+
+// Get vendor profile
+$vendorRepo = new VendorRepository();
+$vendor = $vendorRepo->findByUserId($userId);
+
+if (!$vendor) {
+    die('Vendor profile not found. Please contact support.');
+}
+
+// Get active rentals for this vendor
+$orderRepo = new OrderRepository();
+$orderItemRepo = new OrderItemRepository();
+$userRepo = new UserRepository();
+
+$activeRentals = $orderRepo->getActiveRentals($vendor->getId());
+
+// Get detailed information for each active rental
+$rentalDetails = [];
+foreach ($activeRentals as $rental) {
+    $customer = $userRepo->findById($rental->getCustomerId());
+    $items = $orderItemRepo->findWithProductDetails($rental->getId());
+    
+    $rentalDetails[] = [
+        'order' => $rental,
+        'customer' => $customer,
+        'items' => $items
+    ];
+}
+
+$pageTitle = 'Active Rentals';
+$showNav = true;
+$showContainer = true;
+
+ob_start();
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Active Rentals - Vendor Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <h1 class="text-xl font-semibold text-gray-900">Vendor Dashboard</h1>
-                    </div>
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="dashboard.php" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
-                            Dashboard
-                        </a>
-                        <a href="approval-queue.php" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
-                            Approval Queue
-                        </a>
-                        <a href="active-rentals.php" class="border-b-2 border-blue-500 text-blue-600 px-3 py-2 text-sm font-medium">
-                            Active Rentals
-                        </a>
-                        <a href="orders.php" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
-                            All Orders
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-700 mr-4">Welcome, <?php echo htmlspecialchars($vendorName); ?></span>
-                    <a href="../logout.php" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
+<!-- Page Header -->
+<div class="mb-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Active Rentals</h1>
+            <p class="mt-2 text-gray-600">Manage your ongoing rental orders and track rental periods.</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold">
+                <i class="fas fa-play-circle mr-2"></i>
+                <?= count($activeRentals) ?> Active Rentals
             </div>
         </div>
-    </nav>
+    </div>
+</div>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8" x-data="activeRentals()">
-        <!-- Header -->
-        <div class="px-4 py-6 sm:px-0">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Active Rentals</h1>
-                    <p class="mt-1 text-sm text-gray-600">Manage ongoing rentals and mark them as completed</p>
-                </div>
-                <button @click="refreshRentals()" 
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="fas fa-sync-alt mr-2" :class="{ 'animate-spin': loading }"></i>
-                    Refresh
-                </button>
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Total Active Rentals -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Active Rentals</p>
+                <p class="text-3xl font-bold text-green-600 mt-2"><?= count($activeRentals) ?></p>
             </div>
-        </div>
-
-        <!-- Loading State -->
-        <div x-show="loading && activeRentals.length === 0" class="text-center py-12">
-            <i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i>
-            <p class="text-gray-600">Loading active rentals...</p>
-        </div>
-
-        <!-- Empty State -->
-        <div x-show="!loading && activeRentals.length === 0" class="text-center py-12">
-            <i class="fas fa-calendar-check text-4xl text-gray-400 mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No active rentals</h3>
-            <p class="text-gray-600">All rentals have been completed or there are no active rentals at the moment.</p>
-        </div>
-
-        <!-- Rentals Grid -->
-        <div x-show="activeRentals.length > 0" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <template x-for="rental in activeRentals" :key="rental.id">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <!-- Rental Header -->
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900" x-text="rental.order_number"></h3>
-                                <p class="text-sm text-gray-600" x-text="formatDate(rental.created_at)"></p>
-                            </div>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fas fa-play-circle mr-1"></i>
-                                Active Rental
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Rental Details -->
-                    <div class="px-6 py-4">
-                        <div class="space-y-3">
-                            <!-- Customer Info -->
-                            <div>
-                                <h4 class="text-sm font-medium text-gray-900 mb-1">Customer</h4>
-                                <p class="text-sm text-gray-600" x-text="rental.customer_id"></p>
-                            </div>
-
-                            <!-- Amount -->
-                            <div>
-                                <h4 class="text-sm font-medium text-gray-900 mb-1">Total Amount</h4>
-                                <p class="text-lg font-semibold text-green-600">₹<span x-text="rental.total_amount"></span></p>
-                            </div>
-
-                            <!-- Deposit -->
-                            <div x-show="rental.deposit_amount > 0">
-                                <h4 class="text-sm font-medium text-gray-900 mb-1">Security Deposit</h4>
-                                <p class="text-sm font-medium text-blue-600">₹<span x-text="rental.deposit_amount"></span></p>
-                            </div>
-
-                            <!-- Duration -->
-                            <div>
-                                <h4 class="text-sm font-medium text-gray-900 mb-1">Rental Period</h4>
-                                <p class="text-sm text-gray-600">Started: <span x-text="formatDate(rental.created_at)"></span></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                        <div class="flex space-x-3">
-                            <button @click="viewRentalDetails(rental.id)" 
-                                    class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <i class="fas fa-eye mr-2"></i>
-                                View Details
-                            </button>
-                            <button @click="showCompleteModal(rental)" 
-                                    class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                <i class="fas fa-check-circle mr-2"></i>
-                                Complete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </div>
-
-        <!-- Complete Rental Modal -->
-        <div x-show="showCompleteModalFlag" 
-             x-transition:enter="ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-             style="display: none;">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div class="mt-3">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Complete Rental</h3>
-                        <button @click="closeCompleteModal()" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Order: <span x-text="selectedRental?.order_number"></span></p>
-                        <p class="text-sm text-gray-600 mb-3">Mark this rental as completed and process the security deposit.</p>
-                    </div>
-
-                    <!-- Deposit Processing -->
-                    <div x-show="selectedRental?.deposit_amount > 0" class="mb-4 p-3 bg-blue-50 rounded-md">
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">Security Deposit: ₹<span x-text="selectedRental?.deposit_amount"></span></h4>
-                        
-                        <div class="space-y-3">
-                            <label class="flex items-center">
-                                <input type="radio" x-model="depositAction" value="release" class="mr-2">
-                                <span class="text-sm text-gray-700">Release full deposit (no damages)</span>
-                            </label>
-                            
-                            <label class="flex items-center">
-                                <input type="radio" x-model="depositAction" value="penalty" class="mr-2">
-                                <span class="text-sm text-gray-700">Apply penalty for damages</span>
-                            </label>
-                            
-                            <label class="flex items-center">
-                                <input type="radio" x-model="depositAction" value="withhold" class="mr-2">
-                                <span class="text-sm text-gray-700">Withhold full deposit</span>
-                            </label>
-                        </div>
-
-                        <!-- Penalty Amount Input -->
-                        <div x-show="depositAction === 'penalty'" class="mt-3">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Penalty Amount</label>
-                            <input type="number" 
-                                   x-model="penaltyAmount" 
-                                   :max="selectedRental?.deposit_amount"
-                                   min="0" 
-                                   step="0.01"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="Enter penalty amount">
-                        </div>
-
-                        <!-- Reason Input -->
-                        <div x-show="depositAction === 'penalty' || depositAction === 'withhold'" class="mt-3">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                            <textarea x-model="penaltyReason" 
-                                      placeholder="Explain the reason for penalty/withholding..."
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                      rows="3"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Completion Reason -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Completion Notes (Optional)</label>
-                        <textarea x-model="completionReason" 
-                                  placeholder="Add any notes about the rental completion..."
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                  rows="3"></textarea>
-                    </div>
-                    
-                    <div class="flex justify-end space-x-3">
-                        <button @click="closeCompleteModal()" 
-                                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Cancel
-                        </button>
-                        <button @click="completeRental()" 
-                                :disabled="processing || (depositAction === 'penalty' && (!penaltyAmount || !penaltyReason)) || (depositAction === 'withhold' && !penaltyReason)"
-                                class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
-                            <span x-show="!processing">Complete Rental</span>
-                            <span x-show="processing">
-                                <i class="fas fa-spinner fa-spin mr-2"></i>
-                                Processing...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Success/Error Messages -->
-        <div x-show="message" 
-             x-transition:enter="ease-out duration-300"
-             x-transition:enter-start="opacity-0 transform translate-y-2"
-             x-transition:enter-end="opacity-100 transform translate-y-0"
-             x-transition:leave="ease-in duration-200"
-             x-transition:leave-start="opacity-100 transform translate-y-0"
-             x-transition:leave-end="opacity-0 transform translate-y-2"
-             class="fixed top-4 right-4 z-50"
-             style="display: none;">
-            <div :class="messageType === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
-                 class="border px-4 py-3 rounded-md shadow-md">
-                <div class="flex items-center">
-                    <i :class="messageType === 'success' ? 'fas fa-check-circle text-green-500' : 'fas fa-exclamation-circle text-red-500'" 
-                       class="mr-2"></i>
-                    <span x-text="message"></span>
-                </div>
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-play-circle text-green-600 text-xl"></i>
             </div>
         </div>
     </div>
 
-    <script>
-        function activeRentals() {
-            return {
-                activeRentals: [],
-                loading: true,
-                showCompleteModalFlag: false,
-                selectedRental: null,
-                depositAction: 'release',
-                penaltyAmount: 0,
-                penaltyReason: '',
-                completionReason: '',
-                processing: false,
-                message: '',
-                messageType: 'success',
+    <!-- Total Revenue from Active -->
+    <?php 
+    $totalActiveRevenue = array_sum(array_map(fn($rental) => $rental->getTotalAmount(), $activeRentals));
+    ?>
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Active Revenue</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">₹<?= number_format($totalActiveRevenue, 2) ?></p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-rupee-sign text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
 
-                init() {
-                    this.loadActiveRentals();
-                },
+    <!-- Deposits Held -->
+    <?php 
+    $totalDepositsHeld = array_sum(array_map(fn($rental) => $rental->getDepositAmount(), $activeRentals));
+    ?>
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Deposits Held</p>
+                <p class="text-3xl font-bold text-yellow-600 mt-2">₹<?= number_format($totalDepositsHeld, 2) ?></p>
+            </div>
+            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-shield-alt text-yellow-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
 
-                async loadActiveRentals() {
-                    this.loading = true;
-                    try {
-                        const response = await fetch('/api/orders.php?action=active_rentals');
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            this.activeRentals = data.data;
-                        } else {
-                            this.showMessage('Failed to load active rentals: ' + data.error, 'error');
-                        }
-                    } catch (error) {
-                        this.showMessage('Error loading active rentals: ' + error.message, 'error');
-                    } finally {
-                        this.loading = false;
-                    }
-                },
+<!-- Active Rentals List -->
+<div class="space-y-6">
+    <?php if (empty($activeRentals)): ?>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-play-circle text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No active rentals</h3>
+            <p class="text-gray-500 mb-6">Active rentals will appear here once customers' orders are approved and activated</p>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/approval-queue.php" 
+               class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                <i class="fas fa-clock mr-2"></i>
+                Check Approval Queue
+            </a>
+        </div>
+    <?php else: ?>
+        <?php foreach ($rentalDetails as $detail): ?>
+            <?php 
+            $order = $detail['order'];
+            $customer = $detail['customer'];
+            $items = $detail['items'];
+            ?>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <!-- Order Header -->
+                <div class="bg-green-50 border-b border-green-100 p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-play-circle text-green-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900"><?= htmlspecialchars($order->getOrderNumber()) ?></h3>
+                                <p class="text-sm text-gray-600">
+                                    Customer: <?= $customer ? htmlspecialchars($customer->getUsername()) : 'Unknown' ?>
+                                    <?php if ($customer): ?>
+                                        <span class="text-gray-400">•</span>
+                                        <?= htmlspecialchars($customer->getEmail()) ?>
+                                    <?php endif; ?>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-gray-900">₹<?= number_format($order->getTotalAmount(), 2) ?></div>
+                            <?php if ($order->getDepositAmount() > 0): ?>
+                                <div class="text-sm text-yellow-600">
+                                    <i class="fas fa-shield-alt mr-1"></i>
+                                    Deposit: ₹<?= number_format($order->getDepositAmount(), 2) ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
 
-                async refreshRentals() {
-                    await this.loadActiveRentals();
-                    this.showMessage('Rentals refreshed successfully', 'success');
-                },
+                <!-- Order Items -->
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <?php foreach ($items as $item): ?>
+                            <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                                <!-- Product Image Placeholder -->
+                                <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <?php if (!empty($item['product_images'])): ?>
+                                        <img src="<?= htmlspecialchars($item['product_images'][0]) ?>" 
+                                             alt="<?= htmlspecialchars($item['product_name']) ?>"
+                                             class="w-full h-full object-cover rounded-lg">
+                                    <?php else: ?>
+                                        <i class="fas fa-box text-gray-400"></i>
+                                    <?php endif; ?>
+                                </div>
 
-                showCompleteModal(rental) {
-                    this.selectedRental = rental;
-                    this.depositAction = 'release';
-                    this.penaltyAmount = 0;
-                    this.penaltyReason = '';
-                    this.completionReason = '';
-                    this.showCompleteModalFlag = true;
-                },
+                                <!-- Product Details -->
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-semibold text-gray-900 truncate">
+                                        <?= htmlspecialchars($item['product_name']) ?>
+                                    </h4>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Quantity: <?= $item['quantity'] ?> × ₹<?= number_format($item['unit_price'], 2) ?>
+                                    </p>
+                                    <div class="text-sm font-medium text-gray-900 mt-1">
+                                        Total: ₹<?= number_format($item['total_price'], 2) ?>
+                                    </div>
+                                </div>
 
-                closeCompleteModal() {
-                    this.showCompleteModalFlag = false;
-                    this.selectedRental = null;
-                    this.depositAction = 'release';
-                    this.penaltyAmount = 0;
-                    this.penaltyReason = '';
-                    this.completionReason = '';
-                },
+                                <!-- Rental Period -->
+                                <div class="text-right flex-shrink-0">
+                                    <div class="text-sm font-medium text-gray-900">Rental Period</div>
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-calendar-alt mr-1 text-green-500"></i>
+                                            <?= date('M d, Y', strtotime($item['start_datetime'])) ?>
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            <?= date('H:i', strtotime($item['start_datetime'])) ?>
+                                        </div>
+                                    </div>
+                                    <div class="text-sm text-gray-600 mt-2">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-calendar-check mr-1 text-red-500"></i>
+                                            <?= date('M d, Y', strtotime($item['end_datetime'])) ?>
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            <?= date('H:i', strtotime($item['end_datetime'])) ?>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-blue-600 mt-2 font-medium">
+                                        <?= $item['duration_value'] ?> <?= $item['duration_unit'] ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
-                async completeRental() {
-                    if (!this.selectedRental) return;
+                <!-- Order Actions -->
+                <div class="bg-gray-50 border-t border-gray-100 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-clock mr-1"></i>
+                            Order created: <?= date('M d, Y H:i', strtotime($order->getCreatedAt())) ?>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <a href="/Multi-Vendor-Rental-System/public/vendor/order-details.php?id=<?= $order->getId() ?>" 
+                               class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-eye mr-2"></i>
+                                View Details
+                            </a>
+                            <a href="/Multi-Vendor-Rental-System/public/vendor/rental-completion.php?id=<?= $order->getId() ?>" 
+                               class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Mark as Completed
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</div>
 
-                    // Validate penalty inputs
-                    if (this.depositAction === 'penalty') {
-                        if (!this.penaltyAmount || this.penaltyAmount <= 0) {
-                            this.showMessage('Please enter a valid penalty amount', 'error');
-                            return;
-                        }
-                        if (!this.penaltyReason.trim()) {
-                            this.showMessage('Please provide a reason for the penalty', 'error');
-                            return;
-                        }
-                        if (this.penaltyAmount > this.selectedRental.deposit_amount) {
-                            this.showMessage('Penalty amount cannot exceed deposit amount', 'error');
-                            return;
-                        }
-                    }
+<!-- Back to Orders -->
+<div class="mt-8 text-center">
+    <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" 
+       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Back to All Orders
+    </a>
+</div>
 
-                    if (this.depositAction === 'withhold' && !this.penaltyReason.trim()) {
-                        this.showMessage('Please provide a reason for withholding the deposit', 'error');
-                        return;
-                    }
-
-                    this.processing = true;
-
-                    try {
-                        const formData = new FormData();
-                        formData.append('action', 'complete');
-                        formData.append('order_id', this.selectedRental.id);
-                        formData.append('reason', this.completionReason || 'Rental completed by vendor');
-                        
-                        // Deposit processing parameters
-                        formData.append('release_deposit', this.depositAction === 'release' ? 'true' : 'false');
-                        formData.append('penalty_amount', this.depositAction === 'penalty' ? this.penaltyAmount : 0);
-                        formData.append('penalty_reason', this.penaltyReason);
-
-                        const response = await fetch('/api/orders.php', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            this.showMessage('Rental completed successfully! Customer has been notified.', 'success');
-                            this.closeCompleteModal();
-                            // Remove the completed rental from the list
-                            this.activeRentals = this.activeRentals.filter(rental => rental.id !== this.selectedRental.id);
-                        } else {
-                            this.showMessage('Failed to complete rental: ' + data.error, 'error');
-                        }
-                    } catch (error) {
-                        this.showMessage('Error completing rental: ' + error.message, 'error');
-                    } finally {
-                        this.processing = false;
-                    }
-                },
-
-                viewRentalDetails(rentalId) {
-                    // Navigate to order details page
-                    window.location.href = `order-details.php?id=${rentalId}`;
-                },
-
-                formatDate(dateString) {
-                    const date = new Date(dateString);
-                    return date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                },
-
-                showMessage(text, type = 'success') {
-                    this.message = text;
-                    this.messageType = type;
-                    
-                    // Auto-hide after 5 seconds
-                    setTimeout(() => {
-                        this.message = '';
-                    }, 5000);
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../layouts/base.php';
+?>

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use RentalPlatform\Auth\Session;
 use RentalPlatform\Auth\Middleware;
 use RentalPlatform\Models\User;
+use RentalPlatform\Models\Order;
 use RentalPlatform\Repositories\VendorRepository;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Database\Connection;
@@ -36,11 +37,19 @@ $stmt = $db->prepare("SELECT COUNT(*) FROM products WHERE vendor_id = :vendor_id
 $stmt->execute([':vendor_id' => $vendor->getId()]);
 $activeProducts = $stmt->fetchColumn();
 
-// Total orders (placeholder - will be implemented later)
-$totalOrders = 0;
+// Get order statistics using OrderRepository
+$orderRepo = new \RentalPlatform\Repositories\OrderRepository();
+$orderStats = $orderRepo->getVendorStatistics($vendor->getId());
 
-// Total revenue (placeholder - will be implemented later)
-$totalRevenue = 0;
+// Calculate totals
+$totalOrders = array_sum(array_column($orderStats, 'count'));
+$totalRevenue = array_sum(array_column($orderStats, 'total_amount'));
+$pendingApprovals = $orderStats[Order::STATUS_PENDING_VENDOR_APPROVAL]['count'] ?? 0;
+$activeRentals = $orderStats[Order::STATUS_ACTIVE_RENTAL]['count'] ?? 0;
+
+// Get recent orders for display
+$recentOrders = $orderRepo->findByVendorId($vendor->getId());
+$recentOrders = array_slice($recentOrders, 0, 5); // Show only 5 most recent
 
 // Recent products
 $stmt = $db->prepare("SELECT * FROM products WHERE vendor_id = :vendor_id ORDER BY created_at DESC LIMIT 5");
@@ -121,7 +130,53 @@ ob_start();
             </div>
         </div>
         <div class="mt-4 flex items-center text-sm">
-            <span class="text-gray-500">All time orders</span>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" class="text-purple-600 hover:text-purple-700">
+                View all orders <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Pending Approvals -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Pending Approvals</p>
+                <p class="text-3xl font-bold text-yellow-600 mt-2"><?= $pendingApprovals ?></p>
+            </div>
+            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-clock text-yellow-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <?php if ($pendingApprovals > 0): ?>
+                <a href="/Multi-Vendor-Rental-System/public/vendor/approval-queue.php" class="text-yellow-600 hover:text-yellow-700">
+                    Review now <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            <?php else: ?>
+                <span class="text-gray-500">No pending approvals</span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Active Rentals -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Active Rentals</p>
+                <p class="text-3xl font-bold text-green-600 mt-2"><?= $activeRentals ?></p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-play-circle text-green-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <?php if ($activeRentals > 0): ?>
+                <a href="/Multi-Vendor-Rental-System/public/vendor/active-rentals.php" class="text-green-600 hover:text-green-700">
+                    View rentals <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            <?php else: ?>
+                <span class="text-gray-500">No active rentals</span>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -145,7 +200,7 @@ ob_start();
 <!-- Quick Actions -->
 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
     <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <a href="/Multi-Vendor-Rental-System/public/vendor/product-create.php" 
            class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group">
             <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
@@ -157,28 +212,143 @@ ob_start();
             </div>
         </a>
 
-        <a href="/Multi-Vendor-Rental-System/public/vendor/products.php" 
-           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <i class="fas fa-list text-blue-600"></i>
+        <a href="/Multi-Vendor-Rental-System/public/vendor/approval-queue.php" 
+           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all group">
+            <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                <i class="fas fa-clock text-yellow-600"></i>
             </div>
             <div class="ml-4">
-                <p class="font-semibold text-gray-900">View All Products</p>
-                <p class="text-sm text-gray-500">Manage your inventory</p>
+                <p class="font-semibold text-gray-900">Approval Queue</p>
+                <p class="text-sm text-gray-500"><?= $pendingApprovals ?> orders waiting</p>
+            </div>
+        </a>
+
+        <a href="/Multi-Vendor-Rental-System/public/vendor/active-rentals.php" 
+           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all group">
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <i class="fas fa-play-circle text-green-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="font-semibold text-gray-900">Active Rentals</p>
+                <p class="text-sm text-gray-500"><?= $activeRentals ?> ongoing rentals</p>
             </div>
         </a>
 
         <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" 
            class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group">
-            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                <i class="fas fa-shopping-bag text-green-600"></i>
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <i class="fas fa-list text-blue-600"></i>
             </div>
             <div class="ml-4">
-                <p class="font-semibold text-gray-900">View Orders</p>
-                <p class="text-sm text-gray-500">Check rental orders</p>
+                <p class="font-semibold text-gray-900">View All Orders</p>
+                <p class="text-sm text-gray-500">Manage your orders</p>
             </div>
         </a>
     </div>
+</div>
+
+<!-- Reports & Analytics -->
+<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">Reports & Analytics</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="/Multi-Vendor-Rental-System/public/vendor/reports.php" 
+           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all group">
+            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                <i class="fas fa-chart-line text-purple-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="font-semibold text-gray-900">Business Reports</p>
+                <p class="text-sm text-gray-500">Rental volume & performance</p>
+            </div>
+        </a>
+
+        <a href="/Multi-Vendor-Rental-System/public/vendor/financial-view.php" 
+           class="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all group">
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <i class="fas fa-chart-bar text-green-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="font-semibold text-gray-900">Financial Dashboard</p>
+                <p class="text-sm text-gray-500">Revenue & payment tracking</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+
+<!-- Recent Orders -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
+    <div class="p-6 border-b border-gray-100">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900">Recent Orders</h2>
+            <a href="/Multi-Vendor-Rental-System/public/vendor/orders.php" 
+               class="text-sm font-medium text-primary-600 hover:text-primary-700">
+                View all <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+    
+    <?php if (empty($recentOrders)): ?>
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-shopping-cart text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No orders yet</h3>
+            <p class="text-gray-500 mb-6">Orders will appear here once customers start renting your products</p>
+        </div>
+    <?php else: ?>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php foreach ($recentOrders as $order): ?>
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900"><?= htmlspecialchars($order->getOrderNumber()) ?></div>
+                                    <div class="text-sm text-gray-500">ID: <?= substr($order->getId(), 0, 8) ?>...</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-<?= $order->getStatusColor() ?>-100 text-<?= $order->getStatusColor() ?>-800">
+                                    <?= htmlspecialchars($order->getStatusLabel()) ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">₹<?= number_format($order->getTotalAmount(), 2) ?></div>
+                                <?php if ($order->getDepositAmount() > 0): ?>
+                                    <div class="text-sm text-gray-500">Deposit: ₹<?= number_format($order->getDepositAmount(), 2) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <?= date('M d, Y', strtotime($order->getCreatedAt())) ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="/Multi-Vendor-Rental-System/public/vendor/order-details.php?id=<?= $order->getId() ?>" 
+                                   class="text-primary-600 hover:text-primary-900 mr-3">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <?php if ($order->requiresVendorApproval()): ?>
+                                    <a href="/Multi-Vendor-Rental-System/public/vendor/order-review.php?id=<?= $order->getId() ?>" 
+                                       class="text-yellow-600 hover:text-yellow-900">
+                                        <i class="fas fa-gavel"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
 
 <!-- Recent Products -->

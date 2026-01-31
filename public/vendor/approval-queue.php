@@ -133,7 +133,7 @@ $vendorName = 'Demo Vendor';
                                 <i class="fas fa-eye mr-2"></i>
                                 View Details
                             </button>
-                            <button @click="approveOrder(order.id)" 
+                            <button @click="showApproveConfirmation(order)" 
                                     class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                 <i class="fas fa-check mr-2"></i>
                                 Approve
@@ -147,6 +147,49 @@ $vendorName = 'Demo Vendor';
                     </div>
                 </div>
             </template>
+        </div>
+
+        <!-- Approve Confirmation Modal -->
+        <div x-show="showApproveModalFlag" 
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+             style="display: none;">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Approve Order</h3>
+                        <button @click="closeApproveModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">Order: <span x-text="selectedOrder?.order_number"></span></p>
+                        <p class="text-sm text-gray-600">Are you sure you want to approve this order? This will activate the rental and the customer will be notified.</p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button @click="closeApproveModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button @click="approveOrder()" 
+                                :disabled="processing"
+                                class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            <span x-show="!processing">Approve Order</span>
+                            <span x-show="processing">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                Processing...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Reject Modal -->
@@ -219,9 +262,11 @@ $vendorName = 'Demo Vendor';
             return {
                 pendingOrders: [],
                 loading: true,
+                showApproveModalFlag: false,
                 showRejectModalFlag: false,
                 selectedOrder: null,
                 rejectionReason: '',
+                processing: false,
                 message: '',
                 messageType: 'success',
 
@@ -232,7 +277,7 @@ $vendorName = 'Demo Vendor';
                 async loadPendingOrders() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/api/orders.php?action=pending_approvals');
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/orders.php?action=pending_approvals');
                         const data = await response.json();
                         
                         if (data.success) {
@@ -252,14 +297,27 @@ $vendorName = 'Demo Vendor';
                     this.showMessage('Queue refreshed successfully', 'success');
                 },
 
-                async approveOrder(orderId) {
+                showApproveConfirmation(order) {
+                    this.selectedOrder = order;
+                    this.showApproveModalFlag = true;
+                },
+
+                closeApproveModal() {
+                    this.showApproveModalFlag = false;
+                    this.selectedOrder = null;
+                },
+
+                async approveOrder() {
+                    if (!this.selectedOrder) return;
+                    
+                    this.processing = true;
                     try {
                         const formData = new FormData();
                         formData.append('action', 'approve');
-                        formData.append('order_id', orderId);
+                        formData.append('order_id', this.selectedOrder.id);
                         formData.append('reason', 'Approved by vendor');
 
-                        const response = await fetch('/api/orders.php', {
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/orders.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -267,14 +325,17 @@ $vendorName = 'Demo Vendor';
                         const data = await response.json();
                         
                         if (data.success) {
-                            this.showMessage('Order approved successfully', 'success');
+                            this.showMessage('Order approved successfully! Customer has been notified.', 'success');
                             // Remove the approved order from the list
-                            this.pendingOrders = this.pendingOrders.filter(order => order.id !== orderId);
+                            this.pendingOrders = this.pendingOrders.filter(order => order.id !== this.selectedOrder.id);
+                            this.closeApproveModal();
                         } else {
                             this.showMessage('Failed to approve order: ' + data.error, 'error');
                         }
                     } catch (error) {
                         this.showMessage('Error approving order: ' + error.message, 'error');
+                    } finally {
+                        this.processing = false;
                     }
                 },
 
@@ -296,13 +357,14 @@ $vendorName = 'Demo Vendor';
                         return;
                     }
 
+                    this.processing = true;
                     try {
                         const formData = new FormData();
                         formData.append('action', 'reject');
                         formData.append('order_id', this.selectedOrder.id);
                         formData.append('reason', this.rejectionReason);
 
-                        const response = await fetch('/api/orders.php', {
+                        const response = await fetch('/Multi-Vendor-Rental-System/public/api/orders.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -310,7 +372,7 @@ $vendorName = 'Demo Vendor';
                         const data = await response.json();
                         
                         if (data.success) {
-                            this.showMessage('Order rejected successfully', 'success');
+                            this.showMessage('Order rejected successfully! Customer has been notified and refund initiated.', 'success');
                             // Remove the rejected order from the list
                             this.pendingOrders = this.pendingOrders.filter(order => order.id !== this.selectedOrder.id);
                             this.closeRejectModal();
@@ -319,6 +381,8 @@ $vendorName = 'Demo Vendor';
                         }
                     } catch (error) {
                         this.showMessage('Error rejecting order: ' + error.message, 'error');
+                    } finally {
+                        this.processing = false;
                     }
                 },
 

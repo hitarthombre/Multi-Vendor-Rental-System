@@ -218,7 +218,8 @@ class OrderRepository
         $sql = "SELECT 
             status,
             COUNT(*) as count,
-            SUM(total_amount) as total_amount
+            SUM(total_amount) as total_amount,
+            SUM(deposit_amount) as deposit_amount
         FROM orders 
         WHERE vendor_id = ? 
         GROUP BY status";
@@ -230,7 +231,8 @@ class OrderRepository
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $stats[$row['status']] = [
                 'count' => (int)$row['count'],
-                'total_amount' => (float)$row['total_amount']
+                'total_amount' => (float)$row['total_amount'],
+                'deposit_amount' => (float)$row['deposit_amount']
             ];
         }
 
