@@ -49,6 +49,14 @@ class ImageUploadService
      */
     public function upload(array $file): array
     {
+        // Check if GD extension is available
+        if (!extension_loaded('gd')) {
+            return [
+                'success' => false,
+                'error' => 'GD extension is not loaded. Please enable it in php.ini'
+            ];
+        }
+
         // Validate file
         $validation = $this->validateFile($file);
         if (!$validation['valid']) {
@@ -76,10 +84,17 @@ class ImageUploadService
             }
 
             // Optimize and resize image
-            $this->optimizeImage($fullPath, $this->maxWidth, $this->maxHeight);
+            $optimized = $this->optimizeImage($fullPath, $this->maxWidth, $this->maxHeight);
+            if (!$optimized) {
+                // If optimization fails, still return success but log it
+                error_log("Failed to optimize image: $fullPath");
+            }
             
             // Create thumbnail
-            $this->createThumbnail($fullPath, $thumbnailPath, $this->thumbnailWidth, $this->thumbnailHeight);
+            $thumbnailCreated = $this->createThumbnail($fullPath, $thumbnailPath, $this->thumbnailWidth, $this->thumbnailHeight);
+            if (!$thumbnailCreated) {
+                error_log("Failed to create thumbnail: $thumbnailPath");
+            }
 
             return [
                 'success' => true,
@@ -197,13 +212,13 @@ class ImageUploadService
         // Load image based on type
         switch ($type) {
             case IMAGETYPE_JPEG:
-                $image = imagecreatefromjpeg($filepath);
+                $image = \imagecreatefromjpeg($filepath);
                 break;
             case IMAGETYPE_PNG:
-                $image = imagecreatefrompng($filepath);
+                $image = \imagecreatefrompng($filepath);
                 break;
             case IMAGETYPE_WEBP:
-                $image = imagecreatefromwebp($filepath);
+                $image = \imagecreatefromwebp($filepath);
                 break;
             default:
                 return false;
@@ -220,33 +235,33 @@ class ImageUploadService
             $newHeight = (int)($height * $ratio);
 
             // Create new image
-            $newImage = imagecreatetruecolor($newWidth, $newHeight);
+            $newImage = \imagecreatetruecolor($newWidth, $newHeight);
             
             // Preserve transparency for PNG
             if ($type === IMAGETYPE_PNG) {
-                imagealphablending($newImage, false);
-                imagesavealpha($newImage, true);
+                \imagealphablending($newImage, false);
+                \imagesavealpha($newImage, true);
             }
 
-            imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-            imagedestroy($image);
+            \imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            \imagedestroy($image);
             $image = $newImage;
         }
 
         // Save optimized image
         switch ($type) {
             case IMAGETYPE_JPEG:
-                imagejpeg($image, $filepath, 85);
+                \imagejpeg($image, $filepath, 85);
                 break;
             case IMAGETYPE_PNG:
-                imagepng($image, $filepath, 8);
+                \imagepng($image, $filepath, 8);
                 break;
             case IMAGETYPE_WEBP:
-                imagewebp($image, $filepath, 85);
+                \imagewebp($image, $filepath, 85);
                 break;
         }
 
-        imagedestroy($image);
+        \imagedestroy($image);
         return true;
     }
 
@@ -271,13 +286,13 @@ class ImageUploadService
         // Load source image
         switch ($type) {
             case IMAGETYPE_JPEG:
-                $source = imagecreatefromjpeg($sourcePath);
+                $source = \imagecreatefromjpeg($sourcePath);
                 break;
             case IMAGETYPE_PNG:
-                $source = imagecreatefrompng($sourcePath);
+                $source = \imagecreatefrompng($sourcePath);
                 break;
             case IMAGETYPE_WEBP:
-                $source = imagecreatefromwebp($sourcePath);
+                $source = \imagecreatefromwebp($sourcePath);
                 break;
             default:
                 return false;
@@ -296,36 +311,36 @@ class ImageUploadService
         $cropY = (int)(($newHeight - $height) / 2);
 
         // Create thumbnail
-        $temp = imagecreatetruecolor($newWidth, $newHeight);
-        $thumbnail = imagecreatetruecolor($width, $height);
+        $temp = \imagecreatetruecolor($newWidth, $newHeight);
+        $thumbnail = \imagecreatetruecolor($width, $height);
 
         // Preserve transparency for PNG
         if ($type === IMAGETYPE_PNG) {
-            imagealphablending($temp, false);
-            imagesavealpha($temp, true);
-            imagealphablending($thumbnail, false);
-            imagesavealpha($thumbnail, true);
+            \imagealphablending($temp, false);
+            \imagesavealpha($temp, true);
+            \imagealphablending($thumbnail, false);
+            \imagesavealpha($thumbnail, true);
         }
 
-        imagecopyresampled($temp, $source, 0, 0, 0, 0, $newWidth, $newHeight, $srcWidth, $srcHeight);
-        imagecopy($thumbnail, $temp, 0, 0, $cropX, $cropY, $width, $height);
+        \imagecopyresampled($temp, $source, 0, 0, 0, 0, $newWidth, $newHeight, $srcWidth, $srcHeight);
+        \imagecopy($thumbnail, $temp, 0, 0, $cropX, $cropY, $width, $height);
 
         // Save thumbnail
         switch ($type) {
             case IMAGETYPE_JPEG:
-                imagejpeg($thumbnail, $destPath, 85);
+                \imagejpeg($thumbnail, $destPath, 85);
                 break;
             case IMAGETYPE_PNG:
-                imagepng($thumbnail, $destPath, 8);
+                \imagepng($thumbnail, $destPath, 8);
                 break;
             case IMAGETYPE_WEBP:
-                imagewebp($thumbnail, $destPath, 85);
+                \imagewebp($thumbnail, $destPath, 85);
                 break;
         }
 
-        imagedestroy($source);
-        imagedestroy($temp);
-        imagedestroy($thumbnail);
+        \imagedestroy($source);
+        \imagedestroy($temp);
+        \imagedestroy($thumbnail);
 
         return true;
     }

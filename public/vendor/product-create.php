@@ -70,26 +70,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imageUrls = [];
             if (isset($_FILES['product_images']) && !empty($_FILES['product_images']['name'][0])) {
                 $uploadService = new ImageUploadService();
-                $uploadDir = __DIR__ . '/../uploads/products/';
-                
-                // Create upload directory if it doesn't exist
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0755, true);
-                }
                 
                 // Process each uploaded file
-                foreach ($_FILES['product_images']['tmp_name'] as $key => $tmpName) {
-                    if ($_FILES['product_images']['error'][$key] === UPLOAD_ERR_OK) {
-                        $fileName = $_FILES['product_images']['name'][$key];
-                        $fileSize = $_FILES['product_images']['size'][$key];
+                $fileCount = count($_FILES['product_images']['name']);
+                for ($i = 0; $i < $fileCount; $i++) {
+                    if ($_FILES['product_images']['error'][$i] === UPLOAD_ERR_OK) {
+                        // Prepare file array for upload service
+                        $file = [
+                            'name' => $_FILES['product_images']['name'][$i],
+                            'type' => $_FILES['product_images']['type'][$i],
+                            'tmp_name' => $_FILES['product_images']['tmp_name'][$i],
+                            'error' => $_FILES['product_images']['error'][$i],
+                            'size' => $_FILES['product_images']['size'][$i]
+                        ];
                         
-                        try {
-                            $result = $uploadService->uploadImage($tmpName, $fileName, $fileSize);
-                            if ($result['success']) {
-                                $imageUrls[] = $result['url'];
-                            }
-                        } catch (Exception $e) {
-                            $errors[] = 'Failed to upload image: ' . $e->getMessage();
+                        $result = $uploadService->upload($file);
+                        if ($result['success']) {
+                            $imageUrls[] = $result['path'];
+                        } else {
+                            $errors[] = 'Failed to upload image: ' . $result['error'];
                         }
                     }
                 }
@@ -102,7 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['category_id'],
                 $imageUrls, // images array
                 $formData['verification_required'],
-                $formData['status']
+                0.00, // securityDeposit - default to 0, can be set later in pricing
+                null, // depositDescription
+                $formData['status'] // status
             );
             
             $productRepo->create($product);
