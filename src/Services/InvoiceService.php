@@ -84,9 +84,15 @@ class InvoiceService
 
         // Create line items for each order item (Task 17.5)
         foreach ($orderItems as $orderItem) {
+            // Get product name
+            $product = $this->orderRepo->findById($order->getId()); // This gets us access to product via order
+            $productRepo = new \RentalPlatform\Repositories\ProductRepository();
+            $productModel = $productRepo->findById($orderItem->getProductId());
+            $productName = $productModel ? $productModel->getName() : 'Product';
+            
             $lineItem = InvoiceLineItem::createRentalItem(
                 $invoice->getId(),
-                $orderItem->getProductName(),
+                $productName,
                 $orderItem->getQuantity(),
                 $orderItem->getUnitPrice(),
                 0.0 // Tax rate - can be configured per product
@@ -123,7 +129,7 @@ class InvoiceService
             $invoice->getStatus(),
             $invoice->getFinalizedAt(),
             $invoice->getCreatedAt(),
-            $invoice->getUpdatedAt()
+            date('Y-m-d H:i:s') // Update timestamp
         );
 
         $this->invoiceRepo->update($invoice);

@@ -27,10 +27,10 @@ class PaymentRepository
     {
         $sql = "INSERT INTO payments (
             id, razorpay_order_id, razorpay_payment_id, razorpay_signature,
-            amount, currency, status, customer_id, metadata, created_at, verified_at
+            amount, currency, status, customer_id, created_at, verified_at
         ) VALUES (
             :id, :razorpay_order_id, :razorpay_payment_id, :razorpay_signature,
-            :amount, :currency, :status, :customer_id, :metadata, :created_at, :verified_at
+            :amount, :currency, :status, :customer_id, :created_at, :verified_at
         )";
 
         $stmt = $this->db->prepare($sql);
@@ -43,7 +43,6 @@ class PaymentRepository
             'currency' => $payment->getCurrency(),
             'status' => $payment->getStatus(),
             'customer_id' => $payment->getCustomerId(),
-            'metadata' => json_encode($payment->getMetadata()),
             'created_at' => $payment->getCreatedAt()->format('Y-m-d H:i:s'),
             'verified_at' => $payment->getVerifiedAt() ? $payment->getVerifiedAt()->format('Y-m-d H:i:s') : null
         ]);
@@ -144,7 +143,7 @@ class PaymentRepository
             $row['customer_id'],
             $row['razorpay_payment_id'],
             $row['razorpay_signature'],
-            json_decode($row['metadata'], true) ?? [],
+            [], // metadata not stored in database for MVP
             new DateTime($row['created_at']),
             $row['verified_at'] ? new DateTime($row['verified_at']) : null
         );

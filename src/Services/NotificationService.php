@@ -28,6 +28,59 @@ class NotificationService
         $this->emailService = new EmailService();
     }
     /**
+     * Send payment success notification to customer
+     * Requirements: 8.1
+     */
+    public function sendPaymentSuccessNotification(string $customerId, $payment): void
+    {
+        $subject = "Payment Successful - Order Confirmation";
+        $message = "
+            <h2>Payment Successful</h2>
+            <p>Your payment has been processed successfully!</p>
+            <p><strong>Payment Details:</strong></p>
+            <ul>
+                <li>Payment ID: {$payment->getId()}</li>
+                <li>Amount: ₹" . number_format($payment->getAmount(), 2) . "</li>
+                <li>Status: Verified</li>
+            </ul>
+            <p>Your orders have been created and you will receive separate confirmation emails for each order.</p>
+            <p>Thank you for your purchase!</p>
+            <p>Best regards,<br>RentalHub Team</p>
+        ";
+
+        $this->sendNotification($customerId, 'payment_success', $subject, $message);
+    }
+
+    /**
+     * Send admin notification for new orders
+     * Requirements: 8.4
+     */
+    public function sendAdminNewOrdersNotification(array $orders): void
+    {
+        $subject = "New Orders Created - " . count($orders) . " Order(s)";
+        
+        $ordersList = '';
+        $totalAmount = 0;
+        foreach ($orders as $order) {
+            $ordersList .= "<li>Order {$order->getOrderNumber()} - ₹" . number_format($order->getTotalAmount(), 2) . " - {$order->getStatus()}</li>";
+            $totalAmount += $order->getTotalAmount();
+        }
+        
+        $message = "
+            <h2>New Orders Created</h2>
+            <p><strong>Number of Orders:</strong> " . count($orders) . "</p>
+            <p><strong>Total Amount:</strong> ₹" . number_format($totalAmount, 2) . "</p>
+            <p><strong>Orders:</strong></p>
+            <ul>{$ordersList}</ul>
+            <p>Please review these orders in the admin dashboard.</p>
+            <p>System Administrator</p>
+        ";
+
+        // Send to admin email (in production, this would be configurable)
+        $this->emailService->sendEmail('admin@rentalhub.com', 'Admin', $subject, $message);
+    }
+
+    /**
      * Send order created notification to customer
      */
     public function sendOrderCreatedNotification(string $customerId, Order $order): void

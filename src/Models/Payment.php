@@ -23,10 +23,10 @@ class Payment
     private DateTime $createdAt;
     private ?DateTime $verifiedAt;
 
-    public const STATUS_CREATED = 'created';
-    public const STATUS_AUTHORIZED = 'authorized';
-    public const STATUS_CAPTURED = 'captured';
-    public const STATUS_FAILED = 'failed';
+    public const STATUS_CREATED = 'Pending';
+    public const STATUS_AUTHORIZED = 'Pending';
+    public const STATUS_CAPTURED = 'Verified';
+    public const STATUS_FAILED = 'Failed';
 
     public function __construct(
         string $id,

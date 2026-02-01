@@ -112,18 +112,19 @@ class InventoryLockRepository
      */
     public function isAvailable(string $variantId, DateTime $startDate, DateTime $endDate, int $quantity = 1): bool
     {
-        // Get all active locks that overlap with the requested period
+        // Get all active locks (not released) that overlap with the requested period
+        // We need to join with rental_periods to get the date ranges
         $sql = "SELECT COUNT(*) as lock_count 
-                FROM inventory_locks 
-                WHERE variant_id = :variant_id 
-                AND status = :status
-                AND start_date < :end_date 
-                AND end_date > :start_date";
+                FROM inventory_locks il
+                JOIN rental_periods rp ON il.rental_period_id = rp.id
+                WHERE il.variant_id = :variant_id 
+                AND il.released_at IS NULL
+                AND rp.start_datetime < :end_date 
+                AND rp.end_datetime > :start_date";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'variant_id' => $variantId,
-            'status' => InventoryLock::STATUS_ACTIVE,
             'start_date' => $startDate->format('Y-m-d H:i:s'),
             'end_date' => $endDate->format('Y-m-d H:i:s')
         ]);
@@ -132,7 +133,7 @@ class InventoryLockRepository
         $lockCount = (int)$result['lock_count'];
         
         // Get variant stock quantity
-        $variantSql = "SELECT stock_quantity FROM variants WHERE id = :id";
+        $variantSql = "SELECT quantity FROM variants WHERE id = :id";
         $variantStmt = $this->db->prepare($variantSql);
         $variantStmt->execute(['id' => $variantId]);
         $variantRow = $variantStmt->fetch(PDO::FETCH_ASSOC);
@@ -141,7 +142,7 @@ class InventoryLockRepository
             return false;
         }
         
-        $stockQuantity = (int)$variantRow['stock_quantity'];
+        $stockQuantity = (int)$variantRow['quantity'];
         
         // Available if: (stock - locked) >= required quantity
         return ($stockQuantity - $lockCount) >= $quantity;

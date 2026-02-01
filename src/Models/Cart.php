@@ -132,14 +132,28 @@ class Cart
      */
     public function groupByVendor(): array
     {
-        $grouped = [];
-        foreach ($this->items as $item) {
-            $vendorId = $item->getVendorId();
-            if (!isset($grouped[$vendorId])) {
-                $grouped[$vendorId] = [];
-            }
-            $grouped[$vendorId][] = $item;
+        if (empty($this->items)) {
+            return [];
         }
+        
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $grouped = [];
+        
+        foreach ($this->items as $item) {
+            // Fetch vendor_id from products table
+            $stmt = $db->prepare("SELECT vendor_id FROM products WHERE id = ?");
+            $stmt->execute([$item->getProductId()]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                $vendorId = $result['vendor_id'];
+                if (!isset($grouped[$vendorId])) {
+                    $grouped[$vendorId] = [];
+                }
+                $grouped[$vendorId][] = $item;
+            }
+        }
+        
         return $grouped;
     }
 

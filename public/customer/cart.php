@@ -7,6 +7,7 @@ use RentalPlatform\Repositories\CartRepository;
 use RentalPlatform\Repositories\ProductRepository;
 use RentalPlatform\Repositories\VariantRepository;
 use RentalPlatform\Repositories\VendorRepository;
+use RentalPlatform\Services\CartService;
 
 Session::start();
 Middleware::requireAuth();
@@ -17,9 +18,11 @@ $cartRepo = new CartRepository();
 $productRepo = new ProductRepository();
 $variantRepo = new VariantRepository();
 $vendorRepo = new VendorRepository();
+$cartService = new CartService();
 
 $errors = [];
 $success = '';
+$validationErrors = [];
 
 // Handle cart actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -82,12 +85,20 @@ $cart = $cartRepo->getOrCreateForCustomer($customerId);
 $cartItems = $cart->getItems();
 $groupedItems = $cart->groupByVendor();
 
+// Validate cart for checkout
+$validation = $cartService->validateForCheckout($customerId);
+$isCartValid = $validation['valid'];
+$validationErrors = $validation['errors'] ?? [];
+
 // Load product and vendor details for each item
 $itemsWithDetails = [];
 foreach ($cartItems as $item) {
     $product = $productRepo->findById($item->getProductId());
     $variant = $variantRepo->findById($item->getVariantId());
-    $vendor = $vendorRepo->findById($item->getVendorId());
+    
+    // Get vendor_id from product
+    $vendorId = $product ? $product->getVendorId() : null;
+    $vendor = $vendorId ? $vendorRepo->findById($vendorId) : null;
     
     $itemsWithDetails[] = [
         'item' => $item,
@@ -302,10 +313,39 @@ ob_start();
                     </div>
                 </div>
                 
-                <button class="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors mb-3">
-                    <i class="fas fa-lock mr-2"></i>
-                    Proceed to Checkout
-                </button>
+                <?php if (!empty($validationErrors)): ?>
+                    <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-red-500 mt-0.5 mr-2"></i>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-red-800 mb-1">Cannot proceed to checkout:</p>
+                                <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
+                                    <?php foreach ($validationErrors as $error): ?>
+                                        <li><?= htmlspecialchars($error) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if ($isCartValid): ?>
+                    <button 
+                        onclick="proceedToCheckout()"
+                        id="checkoutButton"
+                        class="block w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors mb-3 text-center">
+                        <i class="fas fa-lock mr-2"></i>
+                        Proceed to Checkout
+                    </button>
+                <?php else: ?>
+                    <button 
+                        id="checkoutButton"
+                        disabled
+                        class="block w-full px-6 py-3 bg-gray-300 cursor-not-allowed text-white rounded-lg transition-colors mb-3 text-center">
+                        <i class="fas fa-lock mr-2"></i>
+                        Proceed to Checkout
+                    </button>
+                <?php endif; ?>
                 
                 <a href="/Multi-Vendor-Rental-System/public/customer/products.php" 
                    class="block w-full px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center">
@@ -323,6 +363,53 @@ ob_start();
         </div>
     </div>
 <?php endif; ?>
+
+<script>
+function proceedToCheckout() {
+    const button = document.getElementById('checkoutButton');
+    
+    if (!button) {
+        console.error('Checkout button not found');
+        return;
+    }
+    
+    // Disable button and show loading state
+    button.disabled = true;
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Validating...';
+    
+    // Validate cart via API
+    fetch('/Multi-Vendor-Rental-System/public/api/cart.php?action=validate', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.success && data.data && data.data.valid) {
+            // Cart is valid, redirect to checkout
+            window.location.href = 'checkout.php';
+        } else {
+            // Cart is invalid, show errors and reload page
+            const errors = (data && data.data && data.data.errors) ? data.data.errors : ['Unknown validation error'];
+            alert('Cart validation failed: ' + errors.join(', '));
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Validation error:', error);
+        alert('Failed to validate cart. Please try again.');
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+</script>
 
 <?php
 $content = ob_get_clean();

@@ -26,7 +26,8 @@ class ErrorHandlingService
 
     public function __construct()
     {
-        $this->auditLogRepo = new AuditLogRepository();
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $this->auditLogRepo = new AuditLogRepository($db);
         $this->paymentRepo = new PaymentRepository();
         $this->inventoryLockRepo = new InventoryLockRepository();
         $this->orderRepo = new OrderRepository();

@@ -78,6 +78,70 @@ class CartItem
     public function getTentativePrice(): float { return $this->tentativePrice; }
     public function getCreatedAt(): string { return $this->createdAt; }
     public function getUpdatedAt(): string { return $this->updatedAt; }
+    
+    /**
+     * Get subtotal (price * quantity)
+     */
+    public function getSubtotal(): float {
+        return $this->tentativePrice * $this->quantity;
+    }
+    
+    /**
+     * Get price per unit (alias for getTentativePrice)
+     */
+    public function getPricePerUnit(): float {
+        return $this->tentativePrice;
+    }
+    
+    /**
+     * Get rental period start date
+     * Fetches from RentalPeriod model
+     */
+    public function getStartDate(): ?\DateTime {
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $stmt = $db->prepare("SELECT start_datetime FROM rental_periods WHERE id = ?");
+        $stmt->execute([$this->rentalPeriodId]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if ($result && $result['start_datetime']) {
+            return new \DateTime($result['start_datetime']);
+        }
+        return null;
+    }
+    
+    /**
+     * Get rental period end date
+     * Fetches from RentalPeriod model
+     */
+    public function getEndDate(): ?\DateTime {
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $stmt = $db->prepare("SELECT end_datetime FROM rental_periods WHERE id = ?");
+        $stmt->execute([$this->rentalPeriodId]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if ($result && $result['end_datetime']) {
+            return new \DateTime($result['end_datetime']);
+        }
+        return null;
+    }
+    
+    /**
+     * Get rental duration in days
+     * Fetches from RentalPeriod model
+     */
+    public function getRentalDuration(): int {
+        $db = \RentalPlatform\Database\Connection::getInstance();
+        $stmt = $db->prepare("SELECT duration_value, duration_unit FROM rental_periods WHERE id = ?");
+        $stmt->execute([$this->rentalPeriodId]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if ($result) {
+            // For now, assume duration_value represents days
+            // In a more complex system, you'd convert based on duration_unit
+            return (int)$result['duration_value'];
+        }
+        return 0;
+    }
 
     // Setters
     public function setQuantity(int $quantity): void {

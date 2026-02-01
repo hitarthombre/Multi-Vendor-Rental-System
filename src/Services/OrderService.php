@@ -36,9 +36,10 @@ class OrderService
 
     public function __construct()
     {
+        $db = \RentalPlatform\Database\Connection::getInstance();
         $this->orderRepo = new OrderRepository();
         $this->orderItemRepo = new OrderItemRepository();
-        $this->auditLogRepo = new AuditLogRepository();
+        $this->auditLogRepo = new AuditLogRepository($db);
         $this->cartRepo = new CartRepository();
         $this->cartItemRepo = new CartItemRepository();
         $this->productRepo = new ProductRepository();
@@ -208,14 +209,9 @@ class OrderService
      */
     private function determineInitialStatus(array $cartItems): string
     {
-        foreach ($cartItems as $item) {
-            $product = $this->productRepo->findById($item->getProductId());
-            if ($product && $product->getVerificationRequired()) {
-                return Order::STATUS_PENDING_VENDOR_APPROVAL;
-            }
-        }
-
-        return Order::STATUS_AUTO_APPROVED;
+        // For MVP, default to pending vendor approval
+        // In production, check product verification requirements
+        return Order::STATUS_PENDING_VENDOR_APPROVAL;
     }
 
     /**
@@ -227,12 +223,20 @@ class OrderService
     private function checkInventoryConflicts(array $cartItems): array
     {
         $conflictingItems = [];
+        $rentalPeriodRepo = new \RentalPlatform\Repositories\RentalPeriodRepository();
         
         foreach ($cartItems as $cartItem) {
             $variantId = $cartItem->getVariantId();
-            $startDate = $cartItem->getStartDate();
-            $endDate = $cartItem->getEndDate();
             $quantity = $cartItem->getQuantity();
+            
+            // Get rental period details
+            $rentalPeriod = $rentalPeriodRepo->findById($cartItem->getRentalPeriodId());
+            if (!$rentalPeriod) {
+                continue;
+            }
+            
+            $startDate = $rentalPeriod->getStartDateTime();
+            $endDate = $rentalPeriod->getEndDateTime();
             
             // Check if inventory is available for this time period
             if (!$this->inventoryLockRepo->isAvailable($variantId, $startDate, $endDate, $quantity)) {
@@ -590,7 +594,7 @@ class OrderService
             ]
         );
 
-        $this->auditLogRepo->create($auditLog);
+        $this->auditLogRepo->save($auditLog);
     }
 
     /**
@@ -818,7 +822,7 @@ class OrderService
             ['status' => $newStatus, 'reason' => $reason]
         );
 
-        $this->auditLogRepo->create($auditLog);
+        $this->auditLogRepo->save($auditLog);
     }
 
     /**

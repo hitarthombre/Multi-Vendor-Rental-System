@@ -11,10 +11,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use RentalPlatform\Services\CartService;
+use RentalPlatform\Auth\Session;
 
-// For demo purposes, use a hardcoded customer ID
-// In a real application, this would come from the session
-$customerId = '3aaaaeaf-7e48-4498-b7a9-3b33d29d4748'; // jane_smith
+// Start session and get customer ID
+Session::start();
+
+// Check if user is authenticated
+if (!Session::isAuthenticated()) {
+    http_response_code(401);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Authentication required'
+    ]);
+    exit;
+}
+
+$customerId = Session::getUserId();
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';

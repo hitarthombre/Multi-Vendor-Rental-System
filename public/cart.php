@@ -1,9 +1,14 @@
 <?php
-session_start();
+require_once __DIR__ . '/../vendor/autoload.php';
 
-// For demo purposes, use a hardcoded customer ID
-// In a real application, this would come from the session
-$customerId = 'demo-customer-123';
+use RentalPlatform\Auth\Session;
+use RentalPlatform\Auth\Middleware;
+
+Session::start();
+Middleware::requireAuth();
+Middleware::requireCustomer();
+
+$customerId = Session::getUserId();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -39,7 +44,7 @@ $customerId = 'demo-customer-123';
                 <div class="bg-white rounded-lg shadow-sm">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h2 class="text-lg font-medium text-gray-900">Shopping Cart</h2>
-                        <p class="text-sm text-gray-500" x-text="`${cart.summary.total_items} items from ${cart.summary.vendor_count} vendors`"></p>
+                        <p class="text-sm text-gray-500" x-text="`${cart.summary?.total_items || 0} items from ${cart.summary?.vendor_count || 0} vendors`"></p>
                     </div>
 
                     <!-- Loading State -->
@@ -54,7 +59,7 @@ $customerId = 'demo-customer-123';
                     </div>
 
                     <!-- Empty Cart -->
-                    <div x-show="!loading && cart.items.length === 0" class="p-6 text-center">
+                    <div x-show="!loading && (!cart.items || cart.items.length === 0)" class="p-6 text-center">
                         <div class="text-gray-400 mb-4">
                             <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h15.5M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6" />
@@ -68,14 +73,14 @@ $customerId = 'demo-customer-123';
                     </div>
 
                     <!-- Cart Items by Vendor -->
-                    <div x-show="!loading && cart.items.length > 0" class="divide-y divide-gray-200">
+                    <div x-show="!loading && cart.items && cart.items.length > 0" class="divide-y divide-gray-200">
                         <template x-for="(vendor, vendorId) in cart.vendors" :key="vendorId">
                             <div class="p-6">
                                 <!-- Vendor Header -->
                                 <div class="flex items-center mb-4">
                                     <div class="flex-1">
-                                        <h3 class="text-md font-medium text-gray-900" x-text="vendor.vendor_name"></h3>
-                                        <p class="text-sm text-gray-500" x-text="`${vendor.items.length} items • ₹${vendor.total_amount.toFixed(2)}`"></p>
+                                        <h3 class="text-md font-medium text-gray-900" x-text="vendor.vendor_name || 'Unknown Vendor'"></h3>
+                                        <p class="text-sm text-gray-500" x-text="`${vendor.items?.length || 0} items • ₹${(vendor.total_amount || 0).toFixed(2)}`"></p>
                                     </div>
                                 </div>
 
@@ -110,8 +115,8 @@ $customerId = 'demo-customer-123';
 
                                                 <!-- Duration and Price -->
                                                 <div class="mt-1 flex items-center justify-between">
-                                                    <span class="text-sm text-gray-600" x-text="`${item.duration_value} ${item.duration_unit}`"></span>
-                                                    <span class="text-sm font-medium text-gray-900" x-text="`₹${item.tentative_price.toFixed(2)} each`"></span>
+                                                    <span class="text-sm text-gray-600" x-text="`${item.duration_value || 0} ${item.duration_unit || 'days'}`"></span>
+                                                    <span class="text-sm font-medium text-gray-900" x-text="`₹${(item.tentative_price || 0).toFixed(2)} each`"></span>
                                                 </div>
                                             </div>
 
@@ -138,7 +143,7 @@ $customerId = 'demo-customer-123';
 
                                                 <!-- Total Price -->
                                                 <div class="text-right">
-                                                    <div class="text-lg font-semibold text-gray-900" x-text="`₹${(item.tentative_price * item.quantity).toFixed(2)}`"></div>
+                                                    <div class="text-lg font-semibold text-gray-900" x-text="`₹${((item.tentative_price || 0) * (item.quantity || 1)).toFixed(2)}`"></div>
                                                 </div>
 
                                                 <!-- Remove Button -->
@@ -164,21 +169,21 @@ $customerId = 'demo-customer-123';
                         <h3 class="text-lg font-medium text-gray-900">Order Summary</h3>
                     </div>
 
-                    <div x-show="!loading && cart.items.length > 0" class="p-6">
+                    <div x-show="!loading && cart.items && cart.items.length > 0" class="p-6">
                         <!-- Summary Details -->
                         <div class="space-y-3 mb-6">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Items</span>
-                                <span x-text="cart.summary.total_items"></span>
+                                <span x-text="cart.summary?.total_items || 0"></span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Vendors</span>
-                                <span x-text="cart.summary.vendor_count"></span>
+                                <span x-text="cart.summary?.vendor_count || 0"></span>
                             </div>
                             <div class="border-t border-gray-200 pt-3">
                                 <div class="flex justify-between">
                                     <span class="text-base font-medium text-gray-900">Total</span>
-                                    <span class="text-base font-medium text-gray-900" x-text="`₹${cart.summary.total_amount.toFixed(2)}`"></span>
+                                    <span class="text-base font-medium text-gray-900" x-text="`₹${(cart.summary?.total_amount || 0).toFixed(2)}`"></span>
                                 </div>
                             </div>
                         </div>
@@ -203,8 +208,8 @@ $customerId = 'demo-customer-123';
                             <div class="space-y-2">
                                 <template x-for="(vendor, vendorId) in cart.vendors" :key="vendorId">
                                     <div class="flex justify-between text-sm">
-                                        <span class="text-gray-600" x-text="vendor.vendor_name"></span>
-                                        <span x-text="`₹${vendor.total_amount.toFixed(2)}`"></span>
+                                        <span class="text-gray-600" x-text="vendor.vendor_name || 'Unknown Vendor'"></span>
+                                        <span x-text="`₹${(vendor.total_amount || 0).toFixed(2)}`"></span>
                                     </div>
                                 </template>
                             </div>
@@ -212,7 +217,7 @@ $customerId = 'demo-customer-123';
                     </div>
 
                     <!-- Empty Cart Summary -->
-                    <div x-show="!loading && cart.items.length === 0" class="p-6 text-center text-gray-500">
+                    <div x-show="!loading && (!cart.items || cart.items.length === 0)" class="p-6 text-center text-gray-500">
                         <p>Your cart is empty</p>
                     </div>
                 </div>
@@ -245,13 +250,24 @@ $customerId = 'demo-customer-123';
                         const response = await fetch('/Multi-Vendor-Rental-System/public/api/cart.php?action=contents');
                         const result = await response.json();
                         
-                        if (result.success) {
-                            this.cart = result.data;
+                        if (result.success && result.data) {
+                            // Ensure all required properties exist with defaults
+                            this.cart = {
+                                items: result.data.items || [],
+                                summary: {
+                                    total_items: result.data.summary?.total_items || 0,
+                                    vendor_count: result.data.summary?.vendor_count || 0,
+                                    total_amount: result.data.summary?.total_amount || 0
+                                },
+                                vendors: result.data.vendors || {}
+                            };
                         } else {
                             console.error('Failed to load cart:', result.error);
+                            // Keep default empty cart structure
                         }
                     } catch (error) {
                         console.error('Error loading cart:', error);
+                        // Keep default empty cart structure
                     } finally {
                         this.loading = false;
                     }
@@ -361,16 +377,16 @@ $customerId = 'demo-customer-123';
                         const result = await response.json();
                         
                         if (result.success && result.data.valid) {
-                            // Redirect to checkout page (to be implemented)
-                            alert('Checkout functionality will be implemented in payment integration tasks');
+                            // Redirect to checkout page
+                            window.location.href = '/Multi-Vendor-Rental-System/public/customer/checkout.php';
                         } else {
                             const errors = result.data.errors || ['Cart validation failed'];
                             alert('Cannot proceed to checkout:\n' + errors.join('\n'));
+                            this.updating = false;
                         }
                     } catch (error) {
                         console.error('Error validating cart:', error);
                         alert('Error validating cart');
-                    } finally {
                         this.updating = false;
                     }
                 },
