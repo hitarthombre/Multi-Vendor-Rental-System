@@ -233,7 +233,7 @@ class InvoiceRepository
             $row['status'],
             $row['finalized_at'],
             $row['created_at'],
-            $row['updated_at']
+            $row['updated_at'] ?? $row['created_at'] // Use created_at if updated_at doesn't exist
         );
     }
 }

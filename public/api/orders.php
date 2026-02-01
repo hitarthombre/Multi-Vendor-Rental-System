@@ -8,9 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once '../../src/Services/OrderService.php';
-require_once '../../src/Auth/Session.php';
-require_once '../../src/Repositories/VendorRepository.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use RentalPlatform\Services\OrderService;
 use RentalPlatform\Auth\Session;
@@ -128,9 +126,19 @@ try {
                     break;
                     
                 case 'download_invoice':
+                    // Clear any existing output buffers first
+                    while (ob_get_level()) {
+                        ob_end_clean();
+                    }
+                    
+                    // Start fresh output buffering
+                    ob_start();
+                    
                     $orderId = $_GET['order_id'] ?? '';
                     if (empty($orderId)) {
+                        ob_end_clean();
                         http_response_code(400);
+                        header('Content-Type: application/json');
                         echo json_encode([
                             'success' => false,
                             'error' => 'Missing order_id parameter'
@@ -145,7 +153,9 @@ try {
                         
                         // Verify customer ownership (in a real app, get from session)
                         if ($order['customer_id'] !== $customerId) {
+                            ob_end_clean();
                             http_response_code(403);
+                            header('Content-Type: application/json');
                             echo json_encode([
                                 'success' => false,
                                 'error' => 'Unauthorized access to order'
@@ -155,7 +165,9 @@ try {
                         
                         // Check if order status allows invoice download
                         if (!in_array($order['status'], ['Active_Rental', 'Completed'])) {
+                            ob_end_clean();
                             http_response_code(400);
+                            header('Content-Type: application/json');
                             echo json_encode([
                                 'success' => false,
                                 'error' => 'Invoice not available for this order status'
@@ -163,11 +175,14 @@ try {
                             break;
                         }
                         
-                        // Generate and serve PDF invoice
+                        // Generate PDF invoice
                         require_once '../../src/Services/InvoiceService.php';
                         $invoiceService = new \RentalPlatform\Services\InvoiceService();
                         
                         $pdfContent = $invoiceService->generateInvoicePDF($orderId);
+                        
+                        // Clear the output buffer
+                        ob_end_clean();
                         
                         // Set headers for PDF download
                         header('Content-Type: application/pdf');
@@ -180,10 +195,25 @@ try {
                         exit;
                         
                     } catch (Exception $e) {
+                        // Clear any output buffers to prevent HTML errors in PDF
+                        while (ob_get_level()) {
+                            ob_end_clean();
+                        }
+                        
+                        // Log the error
+                        error_log("Invoice generation error: " . $e->getMessage());
+                        error_log("Stack trace: " . $e->getTraceAsString());
+                        
                         http_response_code(500);
+                        header('Content-Type: application/json');
                         echo json_encode([
                             'success' => false,
-                            'error' => 'Failed to generate invoice: ' . $e->getMessage()
+                            'error' => 'Failed to generate invoice. Please contact support.',
+                            'debug' => [
+                                'message' => $e->getMessage(),
+                                'file' => basename($e->getFile()),
+                                'line' => $e->getLine()
+                            ]
                         ]);
                     }
                     break;

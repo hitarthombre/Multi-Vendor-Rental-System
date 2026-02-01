@@ -268,7 +268,16 @@ function viewOrderDetails(orderId) {
 }
 
 function downloadInvoice(orderId) {
-    window.open(`../api/orders.php?action=download_invoice&order_id=${encodeURIComponent(orderId)}`, '_blank');
+    // Try to download invoice, but handle errors gracefully
+    const url = `../api/orders.php?action=download_invoice&order_id=${encodeURIComponent(orderId)}`;
+    
+    // Open in new window
+    const win = window.open(url, '_blank');
+    
+    // Check if popup was blocked
+    if (!win) {
+        alert('Please allow popups to download the invoice');
+    }
 }
 
 function showError(message) {
